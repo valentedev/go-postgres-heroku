@@ -1,6 +1,6 @@
 # go-postgres-heroku
 
-In this project we create a GO HTTP server, connect it to a POSTGRES database for deployment at Heroku.
+In this project we create a GO HTTP server, connect it to a POSTGRES database and prepare for deployment @ Heroku.
 
 ## Requirements
 
@@ -10,7 +10,9 @@ In this project we create a GO HTTP server, connect it to a POSTGRES database fo
 
 ## Author
 
-- [valentedev.rodrigo@gmail.com] (https://github.cmo/valentedev)
+- Rodrigo Valente
+- Github https://github.com/valentedev/go-postgres-heroku
+- Email valentedev.rodrigo@gmail.com
 
 ## License
 
