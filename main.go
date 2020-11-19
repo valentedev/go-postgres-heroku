@@ -39,7 +39,7 @@ func main() {
 type Usuarios struct {
 	ID        int
 	Nome      string
-	Sobrenone string
+	Sobrenome string
 	Email     string
 	Perfil    string
 }
@@ -48,7 +48,7 @@ type Usuarios struct {
 var usuario1 = Usuarios{
 	ID:        1,
 	Nome:      "Rodrigo",
-	Sobrenone: "Valente",
+	Sobrenome: "Valente",
 	Email:     "valentedev.rodrigo@gmail.com",
 	Perfil:    "admin",
 }

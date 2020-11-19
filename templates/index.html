@@ -8,6 +8,17 @@
   <body>
     <h1>valente.dev</h1>
     <h3>Lista de Usuários</h3>
-    <p>{{.}}</p>
+    <table>
+      <tr>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Perfil</th>
+      </tr>
+      <tr>
+        <td>{{.Nome}} {{.Sobrenome}}</td>
+        <td>{{.Email}}</td>
+        <td>{{.Perfil}}</td>
+      </tr>
+    </table>
   </body>
 </html>
