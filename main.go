@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -32,8 +31,6 @@ func main() {
 		WriteTimeout:      2 * time.Minute,
 		MaxHeaderBytes:    1 << 20,
 	}
-	fmt.Println(usuariosSlice)
-	fmt.Printf("Numero de Usuários: %v", len(usuariosSlice))
 	log.Fatal(s.ListenAndServe())
 
 }

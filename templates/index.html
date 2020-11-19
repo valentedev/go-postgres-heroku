@@ -27,11 +27,13 @@
             <th scope="col">E-mail</th>
             <th scope="col">Perfil</th>
           </tr>
+          {{range $valor := .}}
           <tr>
-            <td>{{.Nome}} {{.Sobrenome}}</td>
-            <td>{{.Email}}</td>
-            <td>{{.Perfil}}</td>
+            <td>{{$valor.Nome}} {{$valor.Sobrenome}}</td>
+            <td>{{$valor.Email}}</td>
+            <td>{{$valor.Perfil}}</td>
           </tr>
+          {{end}}
         </table>
       </div>
     </div>
