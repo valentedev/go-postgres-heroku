@@ -25,9 +25,6 @@
           <tr>
             <th scope="col">Nome</th>
             <th scope="col">Mandato</th>
-            <th scope="col">Naturalidade</th>
-            <th scope="col">E-mail</th>
-            <th scope="col">Perfil</th>
           </tr>
           {{range $valor := .}}
           <tr>
@@ -37,9 +34,6 @@
               >
             </td>
             <td>{{$valor.Mandato}}</td>
-            <td>{{$valor.Naturalidade}}</td>
-            <td>{{$valor.Email}}</td>
-            <td>{{$valor.Perfil}}</td>
           </tr>
           {{end}}
         </table>
