@@ -21,22 +21,24 @@
         <h5 style="padding: 10px">Lista de Usuários</h5>
       </div>
       <div class="row">
-        <table class="table">
-          <tr>
-            <th scope="col">Nome</th>
-            <th scope="col">Mandato</th>
-          </tr>
-          {{range $valor := .}}
-          <tr>
-            <td>
-              <a href="/usuario/{{$valor.ID}}"
-                >{{$valor.Nome}} {{$valor.Sobrenome}}</a
-              >
-            </td>
-            <td>{{$valor.Mandato}}</td>
-          </tr>
-          {{end}}
-        </table>
+        <div class="col-md-6">
+          <table class="table">
+            <tr>
+              <th scope="col">Nome</th>
+              <th scope="col">Mandato</th>
+            </tr>
+            {{range $valor := .}}
+            <tr>
+              <td>
+                <a href="/usuario/{{$valor.ID}}"
+                  >{{$valor.Nome}} {{$valor.Sobrenome}}</a
+                >
+              </td>
+              <td>{{$valor.Mandato}}</td>
+            </tr>
+            {{end}}
+          </table>
+        </div>
       </div>
     </div>
 
