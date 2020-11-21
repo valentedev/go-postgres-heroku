@@ -31,7 +31,11 @@
           </tr>
           {{range $valor := .}}
           <tr>
-            <td>{{$valor.Nome}} {{$valor.Sobrenome}}</td>
+            <td>
+              <a href="/usuario/{{$valor.ID}}"
+                >{{$valor.Nome}} {{$valor.Sobrenome}}</a
+              >
+            </td>
             <td>{{$valor.Mandato}}</td>
             <td>{{$valor.Naturalidade}}</td>
             <td>{{$valor.Email}}</td>
