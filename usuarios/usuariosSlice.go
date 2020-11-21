@@ -294,7 +294,7 @@ var UsuariosSlice = []Usuarios{
 		Email:        "js@gmail.com",
 		Perfil:       "no-admin",
 		Mandato:      "1985-1990",
-		Foto:         "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Foto_Oficial_Sarney_EBC.jpg/330px-Foto_Oficial_Sarney_EBC.jpghttps://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Foto_Oficial_Sarney_EBC.jpg/330px-Foto_Oficial_Sarney_EBC.jpg",
+		Foto:         "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Foto_Oficial_Sarney_EBC.jpg/220px-Foto_Oficial_Sarney_EBC.jpg",
 		Naturalidade: "Pinheiro-MA",
 	},
 	{
