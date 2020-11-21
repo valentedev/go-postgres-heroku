@@ -59,15 +59,15 @@ func Usuario(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Path
 	//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
 	id := strings.TrimPrefix(params, "/usuario/")
-	//convertemos o id de int para string e chamamos de "stringid"
-	stringid, err := strconv.Atoi(id)
+	//convertemos o id de int para string e chamamos de "idint"
+	idint, err := strconv.Atoi(id)
 	if err != nil {
 		fmt.Println("invalid param format")
 	}
 	//"us" é uma instância dos valores de Usuarios
 	us := usuarios.UsuariosSlice
 	//"resultado" é a função "encontrar" com os parâmetros us e indint
-	resultado := encontrar(us, stringid)
+	resultado := encontrar(us, idint)
 	//Criamos um template tpl
 	tpl := template.Must(template.ParseGlob("./templates/*.html"))
 	if len(resultado) == 0 {
