@@ -59,7 +59,7 @@ func Usuario(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Path
 	//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
 	id := strings.TrimPrefix(params, "/usuario/")
-	//convertemos o id de int para string e chamamos de "idint"
+	//convertemos o tipo id de string para int e chamamos de "idint"
 	idint, err := strconv.Atoi(id)
 	if err != nil {
 		fmt.Println("invalid param format")
