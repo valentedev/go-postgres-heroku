@@ -11,6 +11,6 @@ CREATE TABLE public.usuarios (
     email VARCHAR(100) UNIQUE,
     perfil VARCHAR(50),
     mandato VARCHAR(50),
-    foto VARCHAR(150),
+    foto VARCHAR(250),
     naturalidade VARCHAR(100)
 );
