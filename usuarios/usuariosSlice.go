@@ -12,6 +12,9 @@ type Usuarios struct {
 	Naturalidade string
 }
 
+//UsuariosDB vai receber os registros proveninentes do banco de dados
+var UsuariosDB = []Usuarios{}
+
 //UsuariosSlice vai reunir um ou mais Usuários que serão renderizados no Template index.html
 var UsuariosSlice = []Usuarios{
 	{
