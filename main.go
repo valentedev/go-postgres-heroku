@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
@@ -26,12 +28,16 @@ func main() {
 		panic("PORT not defined")
 	}
 
-	//com conect estamos instanciando a func conectarDB que serã passada como argumento do handler Usuario(*sql.DB)
+	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler Usuario(*sql.DB)
 	conect := conectarDB()
-	seed(conect)
 
-	http.HandleFunc("/", Home)
-	//http.HandleFunc("/usuario/", Usuario(conect))
+	//aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
+	//depois que os dados foram migrados, podem deixar de chamar a função seed()
+	//seed(conect)
+
+	//temos 2 handlers: Home e Usuario
+	http.HandleFunc("/", Home(conect))
+	http.HandleFunc("/usuario/", Usuario(conect))
 
 	s := &http.Server{
 		Addr:              ":" + port,
@@ -45,54 +51,89 @@ func main() {
 }
 
 //Home é uma função que vai usar o Template index.html e injeta informações de usuarios em uma tabela
-func Home(w http.ResponseWriter, r *http.Request) {
+func Home(db *sql.DB) http.HandlerFunc {
 
-	var tpl *template.Template
-	us := usuarios.UsuariosSlice
-	tpl = template.Must(template.ParseGlob("./templates/*.html"))
-	err := tpl.ExecuteTemplate(w, "index.html", us)
-	if err != nil {
-		panic(err)
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		rows, err := db.Query("SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios;")
+		if err != nil {
+			panic(err)
+		}
+
+		defer rows.Close()
+
+		linhas := make([]usuarios.Usuarios, 0)
+		for rows.Next() {
+			linha := usuarios.Usuarios{}
+			err := rows.Scan(&linha.ID, &linha.Nome, &linha.Sobrenome, &linha.Email, &linha.Perfil, &linha.Mandato, &linha.Foto, &linha.Naturalidade)
+			if err != nil {
+				panic(err)
+			}
+			linhas = append(linhas, linha)
+		}
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*.html"))
+		err = tpl.ExecuteTemplate(w, "index.html", linhas)
+		if err != nil {
+			panic(err)
+		}
 	}
+
 }
 
-// func Usuario(db *sql.DB) http.HandlerFunc {
+//Usuario vai retornar um usuario que tenha o mesmo ID informado no http request
+func Usuario(db *sql.DB) http.HandlerFunc {
 
-// 	//ess é ema função anônima
-// 	return func(w http.ResponseWriter, r *http.Request) {
+	//retornamos um Handler será uma função anônima
+	return func(w http.ResponseWriter, r *http.Request) {
 
-// 		//"params" é o URL de request. Nesse caso, /usuario/{id}
-// 		params := r.URL.Path
-// 		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-// 		id := strings.TrimPrefix(params, "/usuario/")
-// 		//convertemos o tipo id de string para int e chamamos de "idint"
-// 		idint, err := strconv.Atoi(id)
-// 		if err != nil {
-// 			fmt.Println("invalid param format")
-// 		}
+		//"params" é o URL de request. Nesse caso, /usuario/{id}
+		params := r.URL.Path
+		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
+		id := strings.TrimPrefix(params, "/usuario/")
+		//convertemos o tipo id de string para int e chamamos de "idint"
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			fmt.Println("invalid param format")
+		}
 
-// 		usdb := usuarios.UsuariosDB
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query := `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
 
-// 		resultado :=
+		//row terá o resultado da sql query
+		row := db.QueryRow(query, idint)
 
-// 		//Criamos um template tpl
-// 		tpl := template.Must(template.ParseGlob("./templates/*.html"))
-// 		if len(resultado) == 0 {
-// 			//se "resultado" retornar vazia executamos o template usuarioNil.html
-// 			err = tpl.ExecuteTemplate(w, "usuarioNil.html", resultado)
-// 			if err != nil {
-// 				panic(err)
-// 			}
-// 		} else {
-// 			//executamos o template detalhesUsuario.html
-// 			err = tpl.ExecuteTemplate(w, "detalhesUsuario.html", resultado)
-// 			if err != nil {
-// 				panic(err)
-// 			}
-// 		}
+		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		var usuario usuarios.Usuarios
 
-// 	}
-// }
+		//copiamos o as informações de "row" para "usuario"
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		usuarioSlice := make([]usuarios.Usuarios, 0)
+		usuarioSlice = append(usuarioSlice, usuario)
+
+		//Criamos um template tpl
+		tpl := template.Must(template.ParseGlob("./templates/*.html"))
+		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
+
+		if len(usuarioSlice) == 0 {
+			err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err = tpl.ExecuteTemplate(w, "detalhesUsuario.html", usuarioSlice)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+	}
+}
 
 //conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no .env
 func conectarDB() *sql.DB {
