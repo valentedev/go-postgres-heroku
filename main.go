@@ -29,7 +29,7 @@ func main() {
 		conect = conectarDBLocal()
 	}
 
-	port := "8080"
+	port := os.Getenv("PORT")
 
 	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler Usuario(*sql.DB)
 	//conect := conectarDB()
