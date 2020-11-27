@@ -61,6 +61,13 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		// metodo := r.Method
+		// params := r.URL.Path
+		// host := r.Host
+		// fmt.Printf("Request: %s %s at %s %s\n", params, metodo, time.Now().Format(time.RFC3339), host)
+
+		logging(r)
+
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios;")
 		if err != nil {
 			panic(err)
@@ -93,6 +100,8 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 
 	//retornamos um Handler será uma função anônima
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
 
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
@@ -139,6 +148,13 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		}
 
 	}
+}
+
+func logging(r *http.Request) {
+	metodo := r.Method
+	params := r.URL.Path
+	host := r.Host
+	fmt.Printf("Request: %s %s%s - %s\n", metodo, host, params, time.Now().Format(time.RFC3339))
 }
 
 //conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no env do Heroku
