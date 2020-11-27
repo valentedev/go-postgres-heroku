@@ -18,29 +18,35 @@ import (
 
 func main() {
 
-	err := godotenv.Load(".env.prod")
+	var conect *sql.DB
+
+	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
+		//caso não haja o arquivo .env não esteja presente
+		conect = conectarDBHeroku()
+	} else {
+		conect = conectarDBLocal()
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		panic("PORT not defined")
-	}
+	// port := os.Getenv("PORT")
+	// if port == "" {
+	// 	panic("PORT not defined")
+	// }
 
 	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler Usuario(*sql.DB)
-	conect := conectarDB()
+	//conect := conectarDB()
 
 	//aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	//depois que os dados foram migrados, podem deixar de chamar a função seed()
-	seed(conect)
+	//seed(conect)
 
 	//temos 2 handlers: Home e Usuario
 	http.HandleFunc("/", Home(conect))
 	http.HandleFunc("/usuario/", Usuario(conect))
 
 	s := &http.Server{
-		Addr:              ":" + port,
+		Addr:              ":8080",
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Minute,
 		WriteTimeout:      2 * time.Minute,
@@ -135,11 +141,21 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-//conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no .env
-func conectarDB() *sql.DB {
-	HDBInfo := fmt.Sprint(os.Getenv("DATABASE_URL"))
-	//DBinfo := fmt.Sprintf("user=%s password=%s host=%s port=%v dbname=%s sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
-	db, err := sql.Open("pgx", HDBInfo)
+//conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no env do Heroku
+func conectarDBHeroku() *sql.DB {
+	DBinfo := fmt.Sprint(os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("pgx", DBinfo)
+	if err != nil {
+		panic(err)
+	}
+
+	return db
+}
+
+// conectarDBLocal vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no .env
+func conectarDBLocal() *sql.DB {
+	DBinfo := fmt.Sprintf("user=%s password=%s host=%s port=%v dbname=%s sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
+	db, err := sql.Open("pgx", DBinfo)
 	if err != nil {
 		panic(err)
 	}
