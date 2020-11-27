@@ -18,7 +18,7 @@ import (
 
 func main() {
 
-	err := godotenv.Load()
+	err := godotenv.Load(".env.prod")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -137,7 +137,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 
 //conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no .env
 func conectarDB() *sql.DB {
-	HDBInfo := fmt.Sprint("postgres://nalhgjzhkoqwla:cf388a3bdad97cb7c38e947eb208035a00c99053a086dcf7c94d0d28e277ebe1@ec2-54-205-248-255.compute-1.amazonaws.com:5432/d4939969tmupml")
+	HDBInfo := fmt.Sprint(os.Getenv("DATABASE_URL"))
 	//DBinfo := fmt.Sprintf("user=%s password=%s host=%s port=%v dbname=%s sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
 	db, err := sql.Open("pgx", HDBInfo)
 	if err != nil {
