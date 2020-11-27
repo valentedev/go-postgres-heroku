@@ -29,10 +29,7 @@ func main() {
 		conect = conectarDBLocal()
 	}
 
-	// port := os.Getenv("PORT")
-	// if port == "" {
-	// 	panic("PORT not defined")
-	// }
+	port := "8080"
 
 	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler Usuario(*sql.DB)
 	//conect := conectarDB()
@@ -46,7 +43,7 @@ func main() {
 	http.HandleFunc("/usuario/", Usuario(conect))
 
 	s := &http.Server{
-		Addr:              ":8080",
+		Addr:              ":" + port,
 		ReadHeaderTimeout: 20 * time.Second,
 		ReadTimeout:       10 * time.Minute,
 		WriteTimeout:      2 * time.Minute,
