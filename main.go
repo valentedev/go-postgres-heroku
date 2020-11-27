@@ -22,7 +22,7 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file")
 		//caso não haja o arquivo .env não esteja presente
 		conect = conectarDBHeroku()
 	} else {
@@ -60,11 +60,6 @@ func main() {
 func Home(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		// metodo := r.Method
-		// params := r.URL.Path
-		// host := r.Host
-		// fmt.Printf("Request: %s %s at %s %s\n", params, metodo, time.Now().Format(time.RFC3339), host)
 
 		logging(r)
 
