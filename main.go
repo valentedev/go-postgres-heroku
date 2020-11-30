@@ -41,7 +41,8 @@ func main() {
 	//handlers funcs
 	http.HandleFunc("/", Home(conect))
 	http.HandleFunc("/usuario/", Usuario(conect))
-	http.HandleFunc("/usuario/criar/", CriarUsuario(conect))
+	http.HandleFunc("/usuario/criar/", CriarUsuario())
+	http.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
 
 	s := &http.Server{
 		Addr:              ":" + port,
@@ -144,7 +145,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 }
 
 //CriarUsuario gera um formulário para entrada de dados no DB
-func CriarUsuario(db *sql.DB) http.HandlerFunc {
+func CriarUsuario() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logging(r)
 
@@ -154,6 +155,31 @@ func CriarUsuario(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+//NovoUsuarioConfirma faz o Parse da informação gerada em CriarUsuario() e inclui usuario no DB
+func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if r.Method != http.MethodPost {
+			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+			return
+		}
+
+		nome := r.FormValue("nome")
+		sobrenome := r.FormValue("sobrenome")
+		email := r.FormValue("email")
+		perfil := r.FormValue("perfil")
+		mandato := r.FormValue("mandato")
+		foto := r.FormValue("foto")
+		naturalidade := r.FormValue("naturalidade")
+		if nome == "" || sobrenome == "" || email == "" || perfil == "" || mandato == "" || foto == "" || naturalidade == "" {
+			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+			return
+		}
+
+		fmt.Fprintf(w, "Olá %s %s", nome, sobrenome)
 	}
 }
 
