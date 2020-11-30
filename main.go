@@ -38,9 +38,10 @@ func main() {
 	//depois que os dados foram migrados, podem deixar de chamar a função seed()
 	//seed(conect)
 
-	//temos 2 handlers: Home e Usuario
+	//handlers funcs
 	http.HandleFunc("/", Home(conect))
 	http.HandleFunc("/usuario/", Usuario(conect))
+	http.HandleFunc("/usuario/criar/", CriarUsuario(conect))
 
 	s := &http.Server{
 		Addr:              ":" + port,
@@ -139,6 +140,20 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
+	}
+}
+
+//CriarUsuario gera um formulário para entrada de dados no DB
+func CriarUsuario(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logging(r)
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*.html"))
+		err := tpl.ExecuteTemplate(w, "formNovoUsuario.html", nil)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
