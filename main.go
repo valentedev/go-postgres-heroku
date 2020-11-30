@@ -61,7 +61,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
-		rows, err := db.Query("SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios;")
+		rows, err := db.Query("SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios ORDER BY id DESC;")
 		if err != nil {
 			panic(err)
 		}
