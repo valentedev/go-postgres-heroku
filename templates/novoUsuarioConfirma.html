@@ -18,6 +18,15 @@
     <div class="container">
       <h1 style="padding: 20px">valente.dev</h1>
       <div class="row">
+        <a href="/"
+        ><button
+          type="button"
+          class="btn btn-primary"
+          style="margin-bottom: 20px; margin-right: 10px;"
+        >
+          inicio
+        </button></a
+      >
         <a href="/usuario/criar/"
           ><button
             type="button"
@@ -30,6 +39,20 @@
       </div>
       <div class="row">
         <h5 style="padding: 10px">Novo usuario cadastrado!</h5>
+      </div>
+      <div class="row">
+        {{range $valor := .}}
+        <div class="media">
+          <img src="{{$valor.Foto}}" class="mr-3" alt="..." />
+          <div class="media-body">
+            <h5 class="mt-0">{{$valor.Nome}} {{$valor.Sobrenome}}</h5>
+            <p>Mandato: {{$valor.Mandato}}</p>
+            <p>Naturalidade: {{$valor.Naturalidade}}</p>
+            <p>E-mail: {{$valor.Email}}</p>
+            <p>Perfil: {{$valor.Perfil}}</p>
+          </div>
+        </div>
+        {{end}}
       </div>
       
 

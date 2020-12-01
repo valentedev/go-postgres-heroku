@@ -162,11 +162,15 @@ func CriarUsuario() http.HandlerFunc {
 func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		logging(r)
+
+		//caso o método do request não seja POST, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
 			return
 		}
 
+		//instancia valores enviada pelo formulário
 		nome := r.FormValue("nome")
 		sobrenome := r.FormValue("sobrenome")
 		email := r.FormValue("email")
@@ -176,10 +180,39 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 		naturalidade := r.FormValue("naturalidade")
 		if nome == "" || sobrenome == "" || email == "" || perfil == "" || mandato == "" || foto == "" || naturalidade == "" {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
-			return
 		}
 
-		fmt.Fprintf(w, "Olá %s %s", nome, sobrenome)
+		query := `INSERT INTO usuarios (nome, sobrenome, email, perfil, mandato, foto, naturalidade) VALUES ($1,$2,$3,$4,$5,$6,$7);`
+
+		_, err := db.Exec(query, nome, sobrenome, email, perfil, mandato, foto, naturalidade)
+		if err != nil {
+			panic(err)
+		}
+
+		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		var usuario usuarios.Usuarios
+
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query = `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE email=$1;`
+
+		//row terá o resultado da sql query
+		row := db.QueryRow(query, email)
+
+		//copiamos o as informações de "row" para "usuario"
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		usuarioSlice := make([]usuarios.Usuarios, 0)
+		usuarioSlice = append(usuarioSlice, usuario)
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*.html"))
+		err = tpl.ExecuteTemplate(w, "novoUsuarioConfirma.html", usuarioSlice)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
