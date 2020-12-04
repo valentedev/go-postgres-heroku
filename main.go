@@ -44,6 +44,10 @@ func main() {
 	http.HandleFunc("/usuario/criar/", CriarUsuario())
 	http.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
 
+	//handle do /static/
+	fileServer := http.FileServer(http.Dir("./templates/static/"))
+	http.Handle("/static/", http.StripPrefix("/static", fileServer))
+
 	s := &http.Server{
 		Addr:              ":" + port,
 		ReadHeaderTimeout: 20 * time.Second,
