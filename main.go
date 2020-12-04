@@ -56,6 +56,9 @@ func main() {
 
 	// Usuando http.ServerMux
 	mux := http.NewServeMux()
+	//handle do /static/
+	fileServer := http.FileServer(http.Dir("./templates/static/"))
+	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 	mux.HandleFunc("/", Home(conect))
 	mux.HandleFunc("/usuario/", Usuario(conect))
 	mux.HandleFunc("/usuario/criar/", CriarUsuario())
@@ -63,10 +66,6 @@ func main() {
 	addr := ":" + port
 	err = http.ListenAndServe(addr, mux)
 	log.Fatal(err)
-
-	//handle do /static/
-	fileServer := http.FileServer(http.Dir("./templates/static/"))
-	http.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 }
 
