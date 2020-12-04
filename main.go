@@ -38,24 +38,35 @@ func main() {
 	//depois que os dados foram migrados, podem deixar de chamar a função seed()
 	//seed(conect)
 
+	// Usando http.Server
+	// s := &http.Server{
+	// 	Addr:              ":" + port,
+	// 	ReadHeaderTimeout: 20 * time.Second,
+	// 	ReadTimeout:       10 * time.Minute,
+	// 	WriteTimeout:      2 * time.Minute,
+	// 	MaxHeaderBytes:    1 << 20,
+	// }
+	// log.Fatal(s.ListenAndServe())
+
 	//handlers funcs
-	http.HandleFunc("/", Home(conect))
-	http.HandleFunc("/usuario/", Usuario(conect))
-	http.HandleFunc("/usuario/criar/", CriarUsuario())
-	http.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
+	// http.HandleFunc("/", Home(conect))
+	// http.HandleFunc("/usuario/", Usuario(conect))
+	// http.HandleFunc("/usuario/criar/", CriarUsuario())
+	// http.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
+
+	// Usuando http.ServerMux
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", Home(conect))
+	mux.HandleFunc("/usuario/", Usuario(conect))
+	mux.HandleFunc("/usuario/criar/", CriarUsuario())
+	mux.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
+	addr := ":" + port
+	err = http.ListenAndServe(addr, mux)
+	log.Fatal(err)
 
 	//handle do /static/
 	fileServer := http.FileServer(http.Dir("./templates/static/"))
 	http.Handle("/static/", http.StripPrefix("/static", fileServer))
-
-	s := &http.Server{
-		Addr:              ":" + port,
-		ReadHeaderTimeout: 20 * time.Second,
-		ReadTimeout:       10 * time.Minute,
-		WriteTimeout:      2 * time.Minute,
-		MaxHeaderBytes:    1 << 20,
-	}
-	log.Fatal(s.ListenAndServe())
 
 }
 
@@ -65,6 +76,11 @@ func Home(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		logging(r)
+
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -170,7 +186,8 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 
 		//caso o método do request não seja POST, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
-			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+			http.Error(w, "Método não autorizado", 405)
+			//http.Redirect(w, r, "/usuario/criar/", 303)
 			return
 		}
 
