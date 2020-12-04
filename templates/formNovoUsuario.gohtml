@@ -1,0 +1,74 @@
+{{ define "Novo"}}
+    {{ template "Head"}}
+        <div class="row">
+        <a href="/"
+          ><button
+            type="button"
+            class="btn btn-primary"
+            style="margin-bottom: 20px; margin-right: 10px"
+          >
+            inicio
+          </button></a
+        >
+      </div>
+      <div class="row">
+        <h5 style="padding: 10px">Criar Novo Usuário</h5>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <form
+            action="/usuario/criado/"
+            method="POST"
+            style="margin-bottom: 20px"
+          >
+            <input
+              type="text"
+              class="form-control"
+              name="nome"
+              placeholder="Nome"
+            />
+            <input
+              type="text"
+              class="form-control"
+              name="sobrenome"
+              placeholder="Sobrenome"
+            />
+            <input
+              type="email"
+              class="form-control"
+              name="email"
+              placeholder="E-mail"
+            />
+            <input
+              type="text"
+              class="form-control"
+              name="perfil"
+              placeholder="Perfil"
+            />
+            <input
+              type="text"
+              class="form-control"
+              name="mandato"
+              placeholder="Mandato"
+            />
+            <input
+              type="text"
+              class="form-control"
+              name="foto"
+              placeholder="Foto"
+            />
+            <input
+              type="text"
+              class="form-control"
+              name="naturalidade"
+              placeholder="Naturalidade"
+              style="margin-bottom: 20px"
+            />
+            <button type="submit" class="btn btn-primary">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {{ template "Foot" }}
+{{ end }}

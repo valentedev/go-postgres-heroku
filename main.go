@@ -57,7 +57,7 @@ func main() {
 	// Usuando http.ServerMux
 	mux := http.NewServeMux()
 	//handle do /static/
-	fileServer := http.FileServer(http.Dir("./templates/static/"))
+	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 	mux.HandleFunc("/", Home(conect))
 	mux.HandleFunc("/usuario/", Usuario(conect))
@@ -99,8 +99,10 @@ func Home(db *sql.DB) http.HandlerFunc {
 		}
 
 		var tpl *template.Template
-		tpl = template.Must(template.ParseGlob("./templates/*.html"))
-		err = tpl.ExecuteTemplate(w, "index.html", linhas)
+
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		//aqui passamos o nome do TEMPLATE e não do arquivo - nesse caso Index
+		err = tpl.ExecuteTemplate(w, "Index", linhas)
 		if err != nil {
 			panic(err)
 		}
@@ -145,7 +147,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		usuarioSlice = append(usuarioSlice, usuario)
 
 		//Criamos um template tpl
-		tpl := template.Must(template.ParseGlob("./templates/*.html"))
+		tpl := template.Must(template.ParseGlob("./templates/*"))
 		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
 
 		if len(usuarioSlice) == 0 {
@@ -154,7 +156,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 				panic(err)
 			}
 		} else {
-			err = tpl.ExecuteTemplate(w, "detalhesUsuario.html", usuarioSlice)
+			err = tpl.ExecuteTemplate(w, "Detalhes", usuarioSlice)
 			if err != nil {
 				panic(err)
 			}
@@ -169,8 +171,8 @@ func CriarUsuario() http.HandlerFunc {
 		logging(r)
 
 		var tpl *template.Template
-		tpl = template.Must(template.ParseGlob("./templates/*.html"))
-		err := tpl.ExecuteTemplate(w, "formNovoUsuario.html", nil)
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err := tpl.ExecuteTemplate(w, "Novo", nil)
 		if err != nil {
 			panic(err)
 		}
@@ -228,11 +230,46 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 		usuarioSlice = append(usuarioSlice, usuario)
 
 		var tpl *template.Template
-		tpl = template.Must(template.ParseGlob("./templates/*.html"))
-		err = tpl.ExecuteTemplate(w, "novoUsuarioConfirma.html", usuarioSlice)
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "Confirma", usuarioSlice)
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+//EditarUsuario é um handler para editar usuarios
+func EditarUsuario(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		//Manda um log para o stdout
+		logging(r)
+
+		//Verificar seu método http é POST
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método não autorizado", 405)
+			//http.Redirect(w, r, "/usuario/criar/", 303)
+			return
+		}
+
+		//Chama o template para edição do registro
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*.html"))
+		err := tpl.ExecuteTemplate(w, "formEditarUsuario.html", nil)
+		if err != nil {
+			panic(err)
+		}
+
+		// //Aloca o param ao var "id" e converte para integer
+		// params := r.URL.Path
+		// id := strings.TrimPrefix(params, "/usuario/editar")
+		// idint, err := strconv.Atoi(id)
+		// if err != nil {
+		// 	fmt.Println("invalid param format")
+		// }
+
+		// query := `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
+		// row := db.QueryRow(query, idint)
 	}
 }
 
