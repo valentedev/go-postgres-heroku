@@ -62,7 +62,9 @@ func main() {
 	mux.HandleFunc("/", Home(conect))
 	mux.HandleFunc("/usuario/", Usuario(conect))
 	mux.HandleFunc("/usuario/criar/", CriarUsuario())
-	mux.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
+	mux.HandleFunc("/usuario/criado/", Criado(conect))
+	mux.HandleFunc("/usuario/editar/", EditarUsuario(conect))
+	mux.HandleFunc("/usuario/editado/", Editado(conect))
 	addr := ":" + port
 	err = http.ListenAndServe(addr, mux)
 	log.Fatal(err)
@@ -143,23 +145,28 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
-		usuarioSlice := make([]usuarios.Usuarios, 0)
-		usuarioSlice = append(usuarioSlice, usuario)
+		// usuarioSlice := make([]usuarios.Usuarios, 0)
+		// usuarioSlice = append(usuarioSlice, usuario)
 
 		//Criamos um template tpl
 		tpl := template.Must(template.ParseGlob("./templates/*"))
 		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
 
-		if len(usuarioSlice) == 0 {
-			err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			err = tpl.ExecuteTemplate(w, "Detalhes", usuarioSlice)
-			if err != nil {
-				panic(err)
-			}
+		// if len(usuarioSlice) == 0 {
+		// 	err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// } else {
+		// 	err = tpl.ExecuteTemplate(w, "Detalhes", usuarioSlice)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// }
+
+		err = tpl.ExecuteTemplate(w, "Detalhes", usuario)
+		if err != nil {
+			panic(err)
 		}
 
 	}
@@ -179,8 +186,8 @@ func CriarUsuario() http.HandlerFunc {
 	}
 }
 
-//NovoUsuarioConfirma faz o Parse da informação gerada em CriarUsuario() e inclui usuario no DB
-func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
+//Criado faz o Parse da informação gerada em CriarUsuario() e inclui usuario no DB
+func Criado(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		logging(r)
@@ -200,8 +207,12 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 		mandato := r.FormValue("mandato")
 		foto := r.FormValue("foto")
 		naturalidade := r.FormValue("naturalidade")
-		if nome == "" || sobrenome == "" || email == "" || perfil == "" || mandato == "" || foto == "" || naturalidade == "" {
+		if nome == "" || sobrenome == "" || email == "" || perfil == "" || mandato == "" || naturalidade == "" {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+		}
+
+		if foto == "" {
+			foto = "https://robohash.org/" + nome + sobrenome + "?set=set2"
 		}
 
 		query := `INSERT INTO usuarios (nome, sobrenome, email, perfil, mandato, foto, naturalidade) VALUES ($1,$2,$3,$4,$5,$6,$7);`
@@ -231,7 +242,7 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
-		err = tpl.ExecuteTemplate(w, "Confirma", usuarioSlice)
+		err = tpl.ExecuteTemplate(w, "Criado", usuarioSlice)
 		if err != nil {
 			panic(err)
 		}
@@ -242,34 +253,129 @@ func NovoUsuarioConfirma(db *sql.DB) http.HandlerFunc {
 func EditarUsuario(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		//Manda um log para o stdout
 		logging(r)
 
-		//Verificar seu método http é POST
+		//"params" é o URL de request. Nesse caso, /usuario/{id}
+		params := r.URL.Path
+		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
+		id := strings.TrimPrefix(params, "/usuario/editar/")
+		//convertemos o tipo id de string para int e chamamos de "idint"
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			fmt.Println("invalid param format")
+		}
+
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query := `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
+
+		//row terá o resultado da sql query
+		row := db.QueryRow(query, idint)
+
+		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		var usuario usuarios.Usuarios
+
+		//copiamos o as informações de "row" para "usuario"
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "Editar", usuario)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+}
+
+//Editado vai retornar um usuario que tenha o mesmo ID informado no http request
+func Editado(db *sql.DB) http.HandlerFunc {
+
+	//retornamos um Handler será uma função anônima
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		//caso o método do request não seja PUT, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método não autorizado", 405)
 			//http.Redirect(w, r, "/usuario/criar/", 303)
 			return
 		}
 
-		//Chama o template para edição do registro
-		var tpl *template.Template
-		tpl = template.Must(template.ParseGlob("./templates/*.html"))
-		err := tpl.ExecuteTemplate(w, "formEditarUsuario.html", nil)
-		if err != nil {
-			panic(err)
-		}
-
-		// //Aloca o param ao var "id" e converte para integer
+		// //"params" é o URL de request. Nesse caso, /usuario/{id}
 		// params := r.URL.Path
-		// id := strings.TrimPrefix(params, "/usuario/editar")
+		// //"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
+		// id := strings.TrimPrefix(params, "/usuario/editado/")
+		// //convertemos o tipo id de string para int e chamamos de "idint"
 		// idint, err := strconv.Atoi(id)
 		// if err != nil {
 		// 	fmt.Println("invalid param format")
 		// }
 
-		// query := `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
-		// row := db.QueryRow(query, idint)
+		//instancia valores enviada pelo formulário
+		id := r.FormValue("id")
+		idint, err := strconv.Atoi(id)
+		nome := r.FormValue("nome")
+		sobrenome := r.FormValue("sobrenome")
+		email := r.FormValue("email")
+		perfil := r.FormValue("perfil")
+		mandato := r.FormValue("mandato")
+		foto := r.FormValue("foto")
+		naturalidade := r.FormValue("naturalidade")
+		if nome == "" || sobrenome == "" || email == "" || perfil == "" || mandato == "" || foto == "" || naturalidade == "" {
+			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+		}
+
+		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		var usuario usuarios.Usuarios
+
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query := `UPDATE usuarios SET nome=$1, sobrenome=$2, email=$3, perfil=$4, mandato=$5, foto=$6, naturalidade=$7 WHERE id=$8;`
+
+		// _, err = db.Exec(query, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade, idint)
+		_, err = db.Exec(query, nome, sobrenome, email, perfil, mandato, foto, naturalidade, idint)
+		if err != nil {
+			panic(err)
+		}
+
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query = `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
+
+		//row terá o resultado da sql query
+		row := db.QueryRow(query, idint)
+
+		//copiamos o as informações de "row" para "usuario"
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// usuarioSlice := make([]usuarios.Usuarios, 0)
+		// usuarioSlice = append(usuarioSlice, usuario)
+
+		//Criamos um template tpl
+		tpl := template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "Editado", usuario)
+		if err != nil {
+			panic(err)
+		}
+		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
+
+		// if len(usuarioSlice) == 0 {
+		// 	err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// } else {
+		// 	err = tpl.ExecuteTemplate(w, "Editado", usuarioSlice)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// }
+
 	}
 }
 

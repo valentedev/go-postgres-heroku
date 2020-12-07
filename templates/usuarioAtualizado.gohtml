@@ -1,7 +1,7 @@
-{{ define "Detalhes"}}
+{{ define "Editado"}}
     {{ template "Head"}}
         <div class="row">
-        <h4 style="padding: 10px">Detalhes do Usuário</h4>
+        <h4 style="padding: 10px">Usuário atualizado!</h4>
       </div>
       <div class="row">
             <a href="/"
@@ -20,17 +20,16 @@
                 style="margin-bottom: 20px; margin-right: 10px"
             >
                 editar
-            </button></a
-            >
+            </button></a>
         </div>
       <div class="media">
-        <img src={{.Foto}} class="mr-3" alt="..." />
+        <img src="{{ .Foto }}" class="mr-3" alt="..." />
         <div class="media-body">
-          <h5 class="mt-0">{{.Nome}} {{.Sobrenome}}</h5>
-          <p>Mandato: {{.Mandato}}</p>
-          <p>Naturalidade: {{.Naturalidade}}</p>
-          <p>E-mail: {{.Email}}</p>
-          <p>Perfil: {{.Perfil}}</p>
+          <h5 class="mt-0">{{ .Nome }} {{ .Sobrenome }}</h5>
+          <p>Mandato: {{ .Mandato }}</p>
+          <p>Naturalidade: {{ .Naturalidade}}</p>
+          <p>E-mail: {{ .Email }}</p>
+          <p>Perfil: {{ .Perfil }}</p>
         </div>
       </div>
     </div>
