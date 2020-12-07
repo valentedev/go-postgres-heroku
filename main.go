@@ -47,6 +47,8 @@ func main() {
 	mux.HandleFunc("/usuario/criado/", Criado(conect))
 	mux.HandleFunc("/usuario/editar/", EditarUsuario(conect))
 	mux.HandleFunc("/usuario/editado/", Editado(conect))
+	mux.HandleFunc("/usuario/deletar/", Deletar(conect))
+	mux.HandleFunc("/usuario/deletado/", Deletado(conect))
 	addr := ":" + port
 	err = http.ListenAndServe(addr, mux)
 	log.Fatal(err)
@@ -267,7 +269,6 @@ func Editado(db *sql.DB) http.HandlerFunc {
 		//caso o método do request não seja PUT, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método não autorizado", 405)
-			//http.Redirect(w, r, "/usuario/criar/", 303)
 			return
 		}
 
@@ -314,6 +315,50 @@ func Editado(db *sql.DB) http.HandlerFunc {
 		err = tpl.ExecuteTemplate(w, "Editado", usuario)
 		if err != nil {
 			panic(err)
+		}
+	}
+}
+
+// Deletar inicia o processo de remoção do usuário do banco de dados
+func Deletar(db *sql.DB) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		params := r.URL.Path
+		id := strings.TrimPrefix(params, "/usuario/deletar/")
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			fmt.Println("invalid param format")
+		}
+
+		query := `SELECT id, nome, sobrenome, email, perfil, mandato, foto, naturalidade FROM usuarios WHERE id=$1;`
+		row := db.QueryRow(query, idint)
+		var usuario usuarios.Usuarios
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "Deletar", usuario)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+
+}
+
+// Deletado confirma a remoção do usuário do banco de dados
+func Deletado(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logging(r)
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Método não autorizado", 405)
+			return
 		}
 	}
 }
