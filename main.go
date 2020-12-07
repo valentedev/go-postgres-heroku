@@ -18,6 +18,7 @@ import (
 
 func main() {
 
+	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler(*sql.DB)
 	var conect *sql.DB
 
 	err := godotenv.Load()
@@ -31,28 +32,9 @@ func main() {
 
 	port := os.Getenv("PORT")
 
-	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler Usuario(*sql.DB)
-	//conect := conectarDB()
-
 	//aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	//depois que os dados foram migrados, podem deixar de chamar a função seed()
 	//seed(conect)
-
-	// Usando http.Server
-	// s := &http.Server{
-	// 	Addr:              ":" + port,
-	// 	ReadHeaderTimeout: 20 * time.Second,
-	// 	ReadTimeout:       10 * time.Minute,
-	// 	WriteTimeout:      2 * time.Minute,
-	// 	MaxHeaderBytes:    1 << 20,
-	// }
-	// log.Fatal(s.ListenAndServe())
-
-	//handlers funcs
-	// http.HandleFunc("/", Home(conect))
-	// http.HandleFunc("/usuario/", Usuario(conect))
-	// http.HandleFunc("/usuario/criar/", CriarUsuario())
-	// http.HandleFunc("/usuario/criado/", NovoUsuarioConfirma(conect))
 
 	// Usuando http.ServerMux
 	mux := http.NewServeMux()
@@ -145,30 +127,13 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
-		// usuarioSlice := make([]usuarios.Usuarios, 0)
-		// usuarioSlice = append(usuarioSlice, usuario)
-
 		//Criamos um template tpl
 		tpl := template.Must(template.ParseGlob("./templates/*"))
 		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
-
-		// if len(usuarioSlice) == 0 {
-		// 	err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// } else {
-		// 	err = tpl.ExecuteTemplate(w, "Detalhes", usuarioSlice)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// }
-
 		err = tpl.ExecuteTemplate(w, "Detalhes", usuario)
 		if err != nil {
 			panic(err)
 		}
-
 	}
 }
 
@@ -211,6 +176,7 @@ func Criado(db *sql.DB) http.HandlerFunc {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
 		}
 
+		// se não houver um endereço para a FOTO enviada pelo formulário, usamos uma foto gerada automaticamente pelo www.robohash.org
 		if foto == "" {
 			foto = "https://robohash.org/" + nome + sobrenome + "?set=set2"
 		}
@@ -305,16 +271,6 @@ func Editado(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// //"params" é o URL de request. Nesse caso, /usuario/{id}
-		// params := r.URL.Path
-		// //"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-		// id := strings.TrimPrefix(params, "/usuario/editado/")
-		// //convertemos o tipo id de string para int e chamamos de "idint"
-		// idint, err := strconv.Atoi(id)
-		// if err != nil {
-		// 	fmt.Println("invalid param format")
-		// }
-
 		//instancia valores enviada pelo formulário
 		id := r.FormValue("id")
 		idint, err := strconv.Atoi(id)
@@ -353,29 +309,12 @@ func Editado(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
-		// usuarioSlice := make([]usuarios.Usuarios, 0)
-		// usuarioSlice = append(usuarioSlice, usuario)
-
 		//Criamos um template tpl
 		tpl := template.Must(template.ParseGlob("./templates/*"))
 		err = tpl.ExecuteTemplate(w, "Editado", usuario)
 		if err != nil {
 			panic(err)
 		}
-		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
-
-		// if len(usuarioSlice) == 0 {
-		// 	err = tpl.ExecuteTemplate(w, "usuarioNil.html", usuarioSlice)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// } else {
-		// 	err = tpl.ExecuteTemplate(w, "Editado", usuarioSlice)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// }
-
 	}
 }
 
