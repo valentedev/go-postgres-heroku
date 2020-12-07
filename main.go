@@ -356,10 +356,22 @@ func Deletar(db *sql.DB) http.HandlerFunc {
 func Deletado(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logging(r)
-		if r.Method != http.MethodDelete {
-			http.Error(w, "Método não autorizado", 405)
-			return
+
+		params := r.URL.Path
+		id := strings.TrimPrefix(params, "/usuario/deletado/")
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			fmt.Println("invalid param format")
 		}
+
+		query := `DELETE FROM usuarios WHERE id=$1;`
+		_, err = db.Exec(query, idint)
+		if err != nil {
+			panic(err)
+		}
+
+		http.Redirect(w, r, "/", 307)
+
 	}
 }
 

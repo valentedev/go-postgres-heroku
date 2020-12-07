@@ -1,61 +1,68 @@
 {{ define "Deletar"}}
     {{ template "Head"}}
+    <div class="row">
+          <h4 style="padding: 10px">Deletar usuário</h4>
+        </div>
         <div class="row">
-        <h4 style="padding: 10px">Deletar usuário</h4>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <div class="media">
-        <img src={{.Foto}} class="mr-3" alt="..." />
-        <div class="media-body">
-          <h5 class="mt-0">{{.Nome}} {{.Sobrenome}}</h5>
-          <p>Mandato: {{.Mandato}}</p>
-          <p>Naturalidade: {{.Naturalidade}}</p>
-          <p id="emailDB">E-mail: {{.Email}}</p>
-          <p>Perfil: {{.Perfil}}</p>
+          <div class="col-md-6">
+            <div class="media">
+              <img src="{{.Foto}}" class="mr-3" alt="..." />
+              <div class="media-body">
+                <h5 class="mt-0">{{.Nome}} {{.Sobrenome}}</h5>
+                <p>Mandato: {{.Mandato}}</p>
+                <p>Naturalidade: {{.Naturalidade}}</p>
+                <p id="emailDB">E-mail: {{.Email}}</p>
+                <p>Perfil: {{.Perfil}}</p>
+              </div>
+            </div>
+            <div>
+              <p style="margin-top: 20px">
+                Digite o e-mail do usuario que deseja deletar.
+              </p>
+              <form
+                action="/usuario/deletar/"
+                method="DELETE"
+                style="margin-bottom: 20px"
+              >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="emailInput"
+                  name="email"
+                  value=""
+                  placeholder="E-mail"
+                  onkeyup="BotaoDeletarUsuario(this)"
+                  style="margin-bottom: 20px"
+                  autocomplete="off"
+                />
+              </form>
+              <a href="/usuario/deletado/{{.ID}}">
+                <button
+                  type="submit"
+                  class="btn btn-danger"
+                  id="deleteBtn"
+                  disabled
+                >
+                  Deletar
+                </button>
+              </a>
+
+              <a href="/">
+                <button type="button" class="btn btn-primary">Cancelar</button>
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-        <p style="margin-top: 20px">Digite o e-mail do usuario que deseja deletar.</p>
-          <form
-            action="/usuario/deletar/"
-            method="DELETE"
-            style="margin-bottom: 20px"
-          >
-            <input
-              type="text"
-              class="form-control"
-              id="emailInput"
-              name="email"
-              value=""
-              placeholder="E-mail"
-              onkeyup="BotaoDeletarUsuario(this)"
-              style="margin-bottom: 20px"
-              autocomplete="off"
-            />
-            <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>Deletar</button>
-            <a href="/"
-          ><button
-            type="button"
-            class="btn btn-primary"
-          >
-            Cancelar
-          </button></a
-        >
-          </form>
-          
-        </div>
-      </div>
-    </div>
-    <script>
-    // Habilita botão Deletar se email informado for igual al do DB
-      function BotaoDeletarUsuario(emailInput) {
-        var btnSubmit = document.getElementById("deleteBtn");
-        if (emailInput.value == emailDB.innerHTML.slice(8)) {
-          btnSubmit.disabled = false;
-        } else {
-          btnSubmit.disabled = true;
-        }
-      }
-    </script> 
+        <script>
+          // Habilita botão Deletar se email informado for igual al do DB
+          function BotaoDeletarUsuario(emailInput) {
+            var btnSubmit = document.getElementById("deleteBtn");
+            if (emailInput.value == emailDB.innerHTML.slice(8)) {
+              btnSubmit.disabled = false;
+            } else {
+              btnSubmit.disabled = true;
+            }
+          }
+        </script>
     {{ template "Foot" }}
 {{ end }}
