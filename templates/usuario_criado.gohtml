@@ -15,13 +15,11 @@
     <div class="row">
       {{range $valor := .}}
       <div class="media">
-        <img src="{{$valor.Foto}}" class="mr-3" alt="..." />
+        {{/* <img src="{{$valor.Foto}}" class="mr-3" alt="..." /> */}}
         <div class="media-body">
           <h5 class="mt-0">{{$valor.Nome}} {{$valor.Sobrenome}}</h5>
-          <p>Mandato: {{$valor.Mandato}}</p>
-          <p>Naturalidade: {{$valor.Naturalidade}}</p>
           <p>E-mail: {{$valor.Email}}</p>
-          <p>Perfil: {{$valor.Perfil}}</p>
+          <p>Acesso: {{$valor.Acesso}}</p>
         </div>
       </div>
       {{end}}

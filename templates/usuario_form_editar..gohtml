@@ -48,36 +48,17 @@
                 value="{{ .Email}}"
                 placeholder="E-mail"
                 />
-                <input
+                <select
                 type="text"
                 class="form-control"
-                name="perfil"
-                value="{{ .Perfil}}"
-                placeholder="Perfil"
-                />
-                <input
-                type="text"
-                class="form-control"
-                name="mandato"
-                value="{{ .Mandato}}"
+                name="acesso"
+                value="{{ .Acesso}}"
                 placeholder="Mandato"
-                />
-                <input
-                type="text"
-                class="form-control"
-                name="foto"
-                value="{{ .Foto}}"
-                placeholder="Foto"
-                />
-                <input
-                type="text"
-                class="form-control"
-                name="naturalidade"
-                value="{{ .Naturalidade}}"
-                placeholder="Naturalidade"
-                style="margin-bottom: 20px"
-                />
-                <button type="submit" class="btn btn-primary">Enviar</button>
+                >
+                    <option value="admin">Admin</option>
+                    <option value="usuario">Usuario</option>
+                </select>
+                <button type="submit" class="btn btn-primary mt-3">Enviar</button>
             </form>
             </div>
         </div>
