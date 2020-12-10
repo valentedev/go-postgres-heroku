@@ -41,7 +41,10 @@ func main() {
 	//handle do /static/
 	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	mux.HandleFunc("/", Home(conect))
+
+	mux.HandleFunc("/", Login(conect))
+	mux.HandleFunc("/login/redirect/", Logado(conect))
+	mux.HandleFunc("/usuarios/", Home(conect))
 	mux.HandleFunc("/usuario/", Usuario(conect))
 	mux.HandleFunc("/usuario/criar/", CriarUsuario())
 	mux.HandleFunc("/usuario/criado/", Criado(conect))
@@ -61,11 +64,6 @@ func Home(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		logging(r)
-
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -366,6 +364,60 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 
 		http.Redirect(w, r, "/", 307)
 
+	}
+}
+
+// Login recebe email e senha e autentica acesso
+func Login(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err := tpl.ExecuteTemplate(w, "Login", nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// Logado recebe email e senha fo Login e autentica acesso
+func Logado(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		if r.Method != http.MethodPost {
+			http.Error(w, "Método não autorizado", 405)
+			return
+		}
+
+		email := r.FormValue("email")
+		senha := r.FormValue("senha")
+		if email == "" || senha == "" {
+			http.Redirect(w, r, "/login/", http.StatusSeeOther)
+		}
+
+		// query baseada em email
+		query := `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE email=$1`
+		row := db.QueryRow(query, email)
+		var usuario usuarios.Usuarios
+		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		if usuario.Acesso == "admin" {
+			http.Redirect(w, r, "/usuarios/", 307)
+		} else {
+			http.Error(w, "Acesso não autorizado", 401)
+		}
 	}
 }
 

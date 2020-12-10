@@ -1,8 +1,8 @@
-{{ define "Auth" }} {{ template "Head" }}
+{{ define "Login" }} {{ template "Head" }}
 <div class="row">
   <div class="col-md-4">
     <h2>Login</h2>
-    <form action="">
+    <form action="/login/redirect/" method="POST">
       <input
         type="text"
         class="form-control"
@@ -10,11 +10,12 @@
         placeholder="E-mail"
       />
       <input
-        type="senha"
+        type="password"
         class="form-control"
         name="senha"
         placeholder="Senha"
       />
+      <button type="submit" class="btn btn-primary mt-3">Entrar</button>
     </form>
   </div>
 </div>
