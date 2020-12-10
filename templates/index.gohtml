@@ -19,7 +19,7 @@
           <table class="table">
             <tr>
               <th scope="col">Nome</th>
-              <th scope="col">Mandato</th>
+              <th scope="col">Acesso</th>
             </tr>
             {{range $valor := .}}
             <tr>
@@ -28,7 +28,7 @@
                   >{{$valor.Nome}} {{$valor.Sobrenome}}</a
                 >
               </td>
-              <td>{{$valor.Mandato}}</td>
+              <td>{{$valor.Acesso}}</td>
             </tr>
             {{end}}
           </table>
