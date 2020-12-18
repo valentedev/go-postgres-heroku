@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/valentedev/go-postgres-heroku/usuarios"
@@ -413,7 +414,21 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
+		token, err := Token(usuario)
+		if err != nil {
+			panic(err)
+		}
+
+		c := http.Cookie{
+			Name:     "login",
+			Value:    token,
+			HttpOnly: true,
+			Expires:  time.Now().Add(time.Hour * 24),
+		}
+
 		if usuario.Acesso == "admin" {
+			http.SetCookie(w, &c)
+			w.Header().Add("Authorization", token)
 			http.Redirect(w, r, "/usuarios/", 307)
 		} else {
 			http.Error(w, "Acesso não autorizado", 401)
@@ -481,4 +496,24 @@ func seed(db *sql.DB) {
 			panic(err)
 		}
 	}
+}
+
+// Token envia uma string para o client que será usada para autenticação.
+func Token(u usuarios.Usuarios) (string, error) {
+	var err error
+	secret := os.Getenv("TOKEN_SECRET")
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"email": u.Email,
+		"nome":  u.Nome,
+		"iss":   "go-postgres-heroku",
+	})
+
+	tokenString, err := token.SignedString([]byte(secret))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return tokenString, nil
 }
