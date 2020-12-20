@@ -66,6 +66,18 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
+		c, err := r.Cookie("session")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		t, err := TokenCheck(c)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(t)
+
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios ORDER BY id DESC;")
 		if err != nil {
 			panic(err)
@@ -420,7 +432,8 @@ func Logado(db *sql.DB) http.HandlerFunc {
 		}
 
 		c := http.Cookie{
-			Name:     "login",
+			Path:     "/",
+			Name:     "session",
 			Value:    token,
 			HttpOnly: true,
 			Expires:  time.Now().Add(time.Hour * 24),
@@ -428,7 +441,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 
 		if usuario.Acesso == "admin" {
 			http.SetCookie(w, &c)
-			w.Header().Add("Authorization", token)
+			//w.Header().Add("Authorization", token)
 			http.Redirect(w, r, "/usuarios/", 307)
 		} else {
 			http.Error(w, "Acesso não autorizado", 401)
@@ -498,22 +511,57 @@ func seed(db *sql.DB) {
 	}
 }
 
+// TOKEN #####################
+
+type minhasClaims struct {
+	jwt.StandardClaims
+	Email string
+	Nome  string
+}
+
+var assinatura = os.Getenv("TOKEN_SECRET")
+
 // Token envia uma string para o client que será usada para autenticação.
 func Token(u usuarios.Usuarios) (string, error) {
+
 	var err error
-	secret := os.Getenv("TOKEN_SECRET")
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": u.Email,
-		"nome":  u.Nome,
-		"iss":   "go-postgres-heroku",
-	})
+	claims := minhasClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Minute * 10).Unix(),
+			Issuer:    "go-postgres-heroku",
+		},
+		Email: u.Email,
+		Nome:  u.Nome,
+	}
 
-	tokenString, err := token.SignedString([]byte(secret))
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
 
+	tokenString, err := token.SignedString([]byte(assinatura))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return tokenString, nil
+}
+
+// TokenCheck verifica a validade do token
+func TokenCheck(c *http.Cookie) (string, error) {
+
+	tokenString := c.Value
+
+	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+		return []byte(assinatura), nil
+	})
+
+	tokenOK := afterVerificationToken.Valid && err == nil
+
+	mensagemAuth := "Ninguém logado"
+	claims := afterVerificationToken.Claims.(*minhasClaims)
+
+	if tokenOK {
+		mensagemAuth = "Olá " + claims.Nome
+	}
+
+	return mensagemAuth, nil
 }
