@@ -1,21 +1,43 @@
-{{ define "Auth" }} {{ template "Head" }}
 <div class="row">
-  <div class="col-md-4">
-    <h2>Login</h2>
-    <form action="">
-      <input
-        type="text"
-        class="form-control"
-        name="email"
-        placeholder="E-mail"
-      />
-      <input
-        type="senha"
-        class="form-control"
-        name="senha"
-        placeholder="Senha"
-      />
-    </form>
+  <h5 style="margin-right: 20px">Logado: {{ .Usuario }}</h5>
+  <a href="/">
+    <button
+      type="button"
+      class="btn btn-primary"
+      value="logout"
+      onclick='document.cookie = "session=; expires=Thu, 01 Jan 2000 00:00:00 GMT";'
+    >
+      Logout
+    </button>
+  </a>
+</div>
+
+<div class="row">
+  <a href="/usuario/criar/"
+    ><button type="button" class="btn btn-primary" style="margin-bottom: 20px">
+      criar usuário
+    </button></a
+  >
+</div>
+
+<div class="row">
+  <h5 style="padding: 10px">Lista de Usuários</h5>
+  <div class="col-md-6">
+    <table class="table">
+      <tr>
+        <th scope="col">Nome</th>
+        <th scope="col">Acesso</th>
+      </tr>
+      {{range $valor := .Linhas}}
+      <tr>
+        <td>
+          <a href="/usuario/{{$valor.ID}}"
+            >{{$valor.Nome}} {{$valor.Sobrenome}}</a
+          >
+        </td>
+        <td>{{$valor.Acesso}}</td>
+      </tr>
+      {{end}}
+    </table>
   </div>
 </div>
-{{ template "Foot" }} {{ end }}

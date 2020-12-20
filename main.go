@@ -93,11 +93,6 @@ func Home(db *sql.DB) http.HandlerFunc {
 			linhas = append(linhas, linha)
 		}
 
-		var tpl *template.Template
-
-		tpl = template.Must(template.ParseGlob("./templates/*"))
-		//aqui passamos o nome do TEMPLATE e não do arquivo - nesse caso Index
-
 		type Dados struct {
 			Linhas  []usuarios.Usuarios
 			Usuario string
@@ -107,6 +102,10 @@ func Home(db *sql.DB) http.HandlerFunc {
 			Linhas:  linhas,
 			Usuario: t,
 		}
+
+		var tpl *template.Template
+
+		tpl = template.Must(template.ParseGlob("./templates/*"))
 
 		err = tpl.ExecuteTemplate(w, "Index", dados)
 		if err != nil {
@@ -400,6 +399,16 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		c := http.Cookie{
+			Path:     "/",
+			Name:     "session",
+			Value:    "",
+			HttpOnly: true,
+			Expires:  time.Now(),
+		}
+
+		http.SetCookie(w, &c)
+
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
 		err := tpl.ExecuteTemplate(w, "Login", nil)
@@ -565,11 +574,11 @@ func TokenCheck(c *http.Cookie) (string, error) {
 
 	tokenOK := afterVerificationToken.Valid && err == nil
 
-	mensagemAuth := "Ninguém logado"
+	mensagemAuth := "ninguém"
 	claims := afterVerificationToken.Claims.(*minhasClaims)
 
 	if tokenOK {
-		mensagemAuth = "Olá " + claims.Nome
+		mensagemAuth = claims.Nome
 	}
 
 	return mensagemAuth, nil

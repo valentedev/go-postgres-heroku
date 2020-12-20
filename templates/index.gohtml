@@ -1,42 +1,54 @@
 {{ define "Index" }}
   {{ template "Head" }}
-  {{ template "Autenticado" }}
-    <p>{{ .Usuario }}</p>
-      <div class="row">
-        <a href="/usuario/criar/"
-          ><button
-            type="button"
-            class="btn btn-primary"
-            style="margin-bottom: 20px"
-          >
-            criar usuário
-          </button></a
-        >
-      </div>
-      <div class="row">
-        <h5 style="padding: 10px">Lista de Usuários</h5>
-      </div>
-      <div class="row">
-        <div class="col-md-6">
-          <table class="table">
-            <tr>
-              <th scope="col">Nome</th>
-              <th scope="col">Acesso</th>
-            </tr>
-            {{range $valor := .Linhas}}
-            <tr>
-              <td>
-                <a href="/usuario/{{$valor.ID}}"
-                  >{{$valor.Nome}} {{$valor.Sobrenome}}</a
-                >
-              </td>
-              <td>{{$valor.Acesso}}</td>
-            </tr>
-            {{end}}
-          </table>
+  {{ template "Nav" }}
+
+    <div class="row">
+      <div class="col-md-6">  
+        <div class="row">
+          <div class="col-md-6">
+          <h5>Olá {{ .Usuario }}!</h5>
         </div>
+        <div class="col-md-6 text-right">
+          <a href="/">
+            <button
+              type="button"
+              class="btn btn-primary"
+              value="logout"
+            >
+              logout
+            </button>
+          </a>
+          <a href="/usuario/criar/"
+            ><button type="button" class="btn btn-primary">
+              criar usuário
+            </button>
+          </a>
+        </div>
+        </div>
+      </div>      
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mt-4">
+        <h5 style="padding: 10px">Lista de Usuários</h5>
+        <table class="table">
+          <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">Acesso</th>
+          </tr>
+          {{range $valor := .Linhas}}
+          <tr>
+            <td>
+              <a href="/usuario/{{$valor.ID}}"
+                >{{$valor.Nome}} {{$valor.Sobrenome}}</a
+              >
+            </td>
+            <td>{{$valor.Acesso}}</td>
+          </tr>
+          {{end}}
+        </table>
       </div>
     </div>
-    {{ template "Foot" }}
+  {{ template "Foot" }}
 {{ end }}
 
