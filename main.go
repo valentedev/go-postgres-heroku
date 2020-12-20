@@ -76,8 +76,6 @@ func Home(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
-		fmt.Println(t)
-
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios ORDER BY id DESC;")
 		if err != nil {
 			panic(err)
@@ -99,7 +97,18 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		tpl = template.Must(template.ParseGlob("./templates/*"))
 		//aqui passamos o nome do TEMPLATE e não do arquivo - nesse caso Index
-		err = tpl.ExecuteTemplate(w, "Index", linhas)
+
+		type Dados struct {
+			Linhas  []usuarios.Usuarios
+			Usuario string
+		}
+
+		dados := Dados{
+			Linhas:  linhas,
+			Usuario: t,
+		}
+
+		err = tpl.ExecuteTemplate(w, "Index", dados)
 		if err != nil {
 			panic(err)
 		}

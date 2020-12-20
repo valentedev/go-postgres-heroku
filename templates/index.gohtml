@@ -1,5 +1,7 @@
 {{ define "Index" }}
   {{ template "Head" }}
+  {{ template "Autenticado" }}
+    <p>{{ .Usuario }}</p>
       <div class="row">
         <a href="/usuario/criar/"
           ><button
@@ -21,7 +23,7 @@
               <th scope="col">Nome</th>
               <th scope="col">Acesso</th>
             </tr>
-            {{range $valor := .}}
+            {{range $valor := .Linhas}}
             <tr>
               <td>
                 <a href="/usuario/{{$valor.ID}}"
