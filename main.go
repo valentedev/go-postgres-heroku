@@ -15,6 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/valentedev/go-postgres-heroku/usuarios"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -195,9 +196,16 @@ func Criado(db *sql.DB) http.HandlerFunc {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
 		}
 
+		senhaByte, err := SenhaHash(senha)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		senha = string(senhaByte)
+
 		query := `INSERT INTO usuarios (nome, sobrenome, email, senha, acesso) VALUES ($1,$2,$3,$4,$5);`
 
-		_, err := db.Exec(query, nome, sobrenome, email, senha, acesso)
+		_, err = db.Exec(query, nome, sobrenome, email, senha, acesso)
 		if err != nil {
 			panic(err)
 		}
@@ -383,7 +391,7 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 			panic(err)
 		}
 
-		http.Redirect(w, r, "/", 307)
+		http.Redirect(w, r, "/usuarios/", 307)
 
 	}
 }
@@ -582,4 +590,16 @@ func TokenCheck(c *http.Cookie) (string, error) {
 	}
 
 	return mensagemAuth, nil
+}
+
+// SENHA Hash ####################
+
+// SenhaHash usa bcrypt para encriptar a senha
+func SenhaHash(senha string) ([]byte, error) {
+	return bcrypt.GenerateFromPassword([]byte(senha), bcrypt.DefaultCost)
+}
+
+// SenhaHashCheck confirma se a senha encriptada é correta
+func SenhaHashCheck(SenhaHash, senha string) error {
+	return bcrypt.CompareHashAndPassword([]byte(SenhaHash), []byte(senha))
 }
