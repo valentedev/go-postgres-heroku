@@ -14,6 +14,8 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/valentedev/go-postgres-heroku/usuarios"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -457,9 +459,12 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			Secure:   false,
 		}
 
+		nome := usuario.Nome
+
 		if usuario.Acesso == "admin" {
 			http.SetCookie(w, &c)
 			//w.Header().Add("Authorization", token)
+			Email(nome)
 			http.Redirect(w, r, "/usuarios/", 307)
 		} else {
 			http.Error(w, "Acesso não autorizado", 401)
@@ -633,4 +638,23 @@ func SenhaHashCheck(SenhaHash, senha string) error {
 	return bcrypt.CompareHashAndPassword([]byte(SenhaHash), []byte(senha))
 }
 
-// MIDDLEWARE #################
+// ENVIAR EMAIL #################
+
+// Email ...
+func Email(nome string) {
+	from := mail.NewEmail("Rodrigo Valentergs", "valentergs@gmail.com")
+	subject := "Bem-vindo " + nome + "!"
+	to := mail.NewEmail(nome, "rodrigovalente@hotmail.com")
+	plainTextContent := "and easy to do anywhere, even with Go"
+	htmlContent := nome + ", bem-vindo ao app"
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
+	response, err := client.Send(message)
+	if err != nil {
+		log.Println(err)
+	} else {
+		fmt.Println(response.StatusCode)
+		fmt.Println(response.Body)
+		fmt.Println(response.Headers)
+	}
+}
