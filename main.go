@@ -18,10 +18,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func main() {
+//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler(*sql.DB)
+var conect *sql.DB
 
-	//com conect estamos instanciando a func conectarDB que sera passada como argumento do handler(*sql.DB)
-	var conect *sql.DB
+func main() {
 
 	err := godotenv.Load()
 	if err != nil {
@@ -34,10 +34,6 @@ func main() {
 
 	port := os.Getenv("PORT")
 
-	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
-	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
-	// seed(conect)
-
 	// Usuando http.ServerMux
 	mux := http.NewServeMux()
 	//handle do /static/
@@ -46,14 +42,19 @@ func main() {
 
 	mux.HandleFunc("/", Login(conect))
 	mux.HandleFunc("/login/redirect/", Logado(conect))
-	mux.HandleFunc("/usuarios/", Home(conect))
-	mux.HandleFunc("/usuario/", Usuario(conect))
-	mux.HandleFunc("/usuario/criar/", CriarUsuario())
-	mux.HandleFunc("/usuario/criado/", Criado(conect))
-	mux.HandleFunc("/usuario/editar/", EditarUsuario(conect))
-	mux.HandleFunc("/usuario/editado/", Editado(conect))
-	mux.HandleFunc("/usuario/deletar/", Deletar(conect))
-	mux.HandleFunc("/usuario/deletado/", Deletado(conect))
+	mux.HandleFunc("/usuarios/", TokenMiddleware(Home(conect)))
+	mux.HandleFunc("/usuario/", TokenMiddleware(Usuario(conect)))
+	mux.HandleFunc("/usuario/criar/", TokenMiddleware(CriarUsuario()))
+	mux.HandleFunc("/usuario/criado/", TokenMiddleware(Criado(conect)))
+	mux.HandleFunc("/usuario/editar/", TokenMiddleware(EditarUsuario(conect)))
+	mux.HandleFunc("/usuario/editado/", TokenMiddleware(Editado(conect)))
+	mux.HandleFunc("/usuario/deletar/", TokenMiddleware(Deletar(conect)))
+	mux.HandleFunc("/usuario/deletado/", TokenMiddleware(Deletado(conect)))
+
+	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
+	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
+	// seed(conect)
+
 	addr := ":" + port
 	err = http.ListenAndServe(addr, mux)
 	log.Fatal(err)
@@ -67,15 +68,15 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
-		c, err := r.Cookie("session")
-		if err != nil {
-			fmt.Println(err)
-		}
+		// c, err := r.Cookie("session")
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 
-		t, err := TokenCheck(c)
-		if err != nil {
-			fmt.Println(err)
-		}
+		// t, err := TokenCheck(c)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -95,13 +96,13 @@ func Home(db *sql.DB) http.HandlerFunc {
 		}
 
 		type Dados struct {
-			Linhas  []usuarios.Usuarios
-			Usuario string
+			Linhas []usuarios.Usuarios
+			//Usuario string
 		}
 
 		dados := Dados{
-			Linhas:  linhas,
-			Usuario: t,
+			Linhas: linhas,
+			//Usuario: t,
 		}
 
 		var tpl *template.Template
@@ -407,16 +408,6 @@ func Login(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		c := http.Cookie{
-			Path:     "/",
-			Name:     "session",
-			Value:    "",
-			HttpOnly: true,
-			Expires:  time.Now(),
-		}
-
-		http.SetCookie(w, &c)
-
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
 		err := tpl.ExecuteTemplate(w, "Login", nil)
@@ -463,6 +454,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			Value:    token,
 			HttpOnly: true,
 			Expires:  time.Now().Add(time.Hour * 24),
+			Secure:   false,
 		}
 
 		if usuario.Acesso == "admin" {
@@ -577,6 +569,9 @@ func TokenCheck(c *http.Cookie) (string, error) {
 	tokenString := c.Value
 
 	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+		if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
+			return nil, fmt.Errorf("Alguem tentou hackear o siging method")
+		}
 		return []byte(assinatura), nil
 	})
 
@@ -592,7 +587,41 @@ func TokenCheck(c *http.Cookie) (string, error) {
 	return mensagemAuth, nil
 }
 
-// SENHA Hash ####################
+// TokenValid verifica se o token é válido e
+func TokenValid(c *http.Cookie) (string, error) {
+	tokenString := c.Value
+	tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(tokenNaoVerificado *jwt.Token) (interface{}, error) {
+		return []byte(assinatura), nil
+	})
+	if !tokenVerificado.Valid {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+// TokenMiddleware é um wrapper que vai verificar se há um token válido em cada Handler.
+func TokenMiddleware(next http.Handler) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		c, err := r.Cookie("session")
+		if err != nil {
+			c = &http.Cookie{}
+		}
+
+		tokenString := c.Value
+
+		tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(t *jwt.Token) (interface{}, error) {
+			return []byte(assinatura), nil
+		})
+		if err != nil || !tokenVerificado.Valid {
+			fmt.Println("Token inválido ou inexistente")
+			http.Redirect(w, r, "/", 307)
+		}
+
+		next.ServeHTTP(w, r)
+	})
+
+}
 
 // SenhaHash usa bcrypt para encriptar a senha
 func SenhaHash(senha string) ([]byte, error) {
@@ -603,3 +632,5 @@ func SenhaHash(senha string) ([]byte, error) {
 func SenhaHashCheck(SenhaHash, senha string) error {
 	return bcrypt.CompareHashAndPassword([]byte(SenhaHash), []byte(senha))
 }
+
+// MIDDLEWARE #################
