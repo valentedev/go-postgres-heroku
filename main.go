@@ -412,7 +412,7 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 			panic(err)
 		}
 
-		http.Redirect(w, r, "/usuarios/", 307)
+		http.Redirect(w, r, "/", 307)
 
 	}
 }
@@ -634,7 +634,7 @@ func TokenMiddleware(next http.Handler) http.HandlerFunc {
 		})
 		if err != nil || !tokenVerificado.Valid {
 			fmt.Println("Token inválido ou inexistente")
-			http.Redirect(w, r, "/login", 307)
+			http.Redirect(w, r, "/login/", 307)
 		}
 
 		next.ServeHTTP(w, r)
