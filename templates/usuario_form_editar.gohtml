@@ -49,20 +49,48 @@
                 value="{{ .Email}}"
                 placeholder="E-mail"
                 />
-                <select
-                type="text"
-                class="form-control"
-                name="acesso"
-                value="{{ .Acesso}}"
-                placeholder="Mandato"
-                >
-                    <option value="admin">Admin</option>
-                    <option value="usuario">Usuario</option>
-                </select>
+                <div class="form-check">
+                {{ if (eq .Admin true)}}
+                <input type="checkbox" class="form-check-input" id="admin" name="admin" value="{{.Admin}}" checked="checked">
+                {{ else }}
+                <input type="checkbox" class="form-check-input" id="admin" name="admin" value={{.Admin}} indeterminate>
+                {{ end }}
+                <label for="admin" class="form-check-label">Admin</label>
+                </div>
+                <div class="form-check">
+                {{ if (eq .Ativo true)}}
+                <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="{{.Ativo}}" checked>
+                {{ else }}
+                <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="{{.Ativo}}">
+                {{ end }}
+                <label for="ativo" class="form-check-label">Ativo</label>
+                </div>
                 <button type="submit" class="btn btn-primary mt-3">Enviar</button>
             </form>
             </div>
         </div>
         </div>
+        <script>
+        document.getElementById("admin").addEventListener('change', adminCheckbox);
+        document.getElementById("ativo").addEventListener('change', ativoCheckbox);
+
+        function adminCheckbox(){
+            if (this.checked) {
+                this.value = "true"
+            } else {
+                this.value = "false"
+            }
+        }
+
+        function ativoCheckbox(){
+            if (this.checked) {
+                this.value = "true"
+            } else {
+                this.value = "false"
+            }
+        }
+        </script>
     {{ template "Foot" }}
 {{ end }}
+
+

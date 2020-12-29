@@ -7,7 +7,8 @@ type Usuarios struct {
 	Sobrenome string
 	Email     string
 	Senha     string
-	Acesso    string
+	Admin     bool
+	Ativo     bool
 }
 
 //UsuariosSlice vai reunir um ou mais Usuários que serão renderizados no Template index.html
@@ -17,16 +18,36 @@ var UsuariosSlice = []Usuarios{
 		Nome:      "Rodrigo",
 		Sobrenome: "Valente",
 		Email:     "valentedev.rodrigo@gmail.com",
-		Senha:     "",
-		Acesso:    "admin",
+		Senha:     "senha",
+		Admin:     true,
+		Ativo:     true,
 	},
 	{
 		ID:        2,
 		Nome:      "Steve",
 		Sobrenome: "Jobs",
-		Email:     "valentedev.steve@gmail.com",
+		Email:     "sj@email.com",
 		Senha:     "",
-		Acesso:    "usuario",
+		Admin:     false,
+		Ativo:     false,
+	},
+	{
+		ID:        3,
+		Nome:      "Bill",
+		Sobrenome: "Gates",
+		Email:     "bg@email.com",
+		Senha:     "",
+		Admin:     false,
+		Ativo:     true,
+	},
+	{
+		ID:        4,
+		Nome:      "Rodrigo",
+		Sobrenome: "Hotmail Valente",
+		Email:     "rodrigovalente@hotmail.com",
+		Senha:     "",
+		Admin:     true,
+		Ativo:     true,
 	},
 }
 

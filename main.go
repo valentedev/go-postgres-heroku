@@ -55,7 +55,7 @@ func main() {
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
-	// seed(conect)
+	//seed(conect)
 
 	addr := ":" + port
 	err = http.ListenAndServe(addr, mux)
@@ -80,7 +80,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 		// 	fmt.Println(err)
 		// }
 
-		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios ORDER BY id DESC;")
+		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios ORDER BY id DESC;")
 		if err != nil {
 			panic(err)
 		}
@@ -90,7 +90,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 		linhas := make([]usuarios.Usuarios, 0)
 		for rows.Next() {
 			linha := usuarios.Usuarios{}
-			err := rows.Scan(&linha.ID, &linha.Nome, &linha.Sobrenome, &linha.Email, &linha.Senha, &linha.Acesso)
+			err := rows.Scan(&linha.ID, &linha.Nome, &linha.Sobrenome, &linha.Email, &linha.Senha, &linha.Admin, &linha.Ativo)
 			if err != nil {
 				panic(err)
 			}
@@ -138,7 +138,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		}
 
 		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query := `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE id=$1;`
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
 
 		//row terá o resultado da sql query
 		row := db.QueryRow(query, idint)
@@ -147,7 +147,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		var usuario usuarios.Usuarios
 
 		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -194,8 +194,9 @@ func Criado(db *sql.DB) http.HandlerFunc {
 		sobrenome := r.FormValue("sobrenome")
 		email := r.FormValue("email")
 		senha := r.FormValue("senha")
-		acesso := r.FormValue("acesso")
-		if nome == "" || sobrenome == "" || email == "" || acesso == "" {
+		admin := r.FormValue("admin")
+		ativo := r.FormValue("ativo")
+		if nome == "" || sobrenome == "" || email == "" {
 			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
 		}
 
@@ -206,9 +207,20 @@ func Criado(db *sql.DB) http.HandlerFunc {
 
 		senha = string(senhaByte)
 
-		query := `INSERT INTO usuarios (nome, sobrenome, email, senha, acesso) VALUES ($1,$2,$3,$4,$5);`
+		r.ParseForm()
+		formAdmin := r.Form.Get("admin")
+		if formAdmin == "" {
+			admin = "false"
+		}
+		formAtivo := r.Form.Get("ativo")
+		if formAtivo == "" {
+			ativo = "false"
+		}
+		//fmt.Println(r.Form)
 
-		_, err = db.Exec(query, nome, sobrenome, email, senha, acesso)
+		query := `INSERT INTO usuarios (nome, sobrenome, email, senha, admin, ativo) VALUES ($1,$2,$3,$4,$5,$6);`
+
+		_, err = db.Exec(query, nome, sobrenome, email, senha, admin, ativo)
 		if err != nil {
 			panic(err)
 		}
@@ -217,13 +229,13 @@ func Criado(db *sql.DB) http.HandlerFunc {
 		var usuario usuarios.Usuarios
 
 		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query = `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE email=$1;`
+		query = `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
 
 		//row terá o resultado da sql query
 		row := db.QueryRow(query, email)
 
 		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -257,7 +269,7 @@ func EditarUsuario(db *sql.DB) http.HandlerFunc {
 		}
 
 		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query := `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE id=$1;`
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
 
 		//row terá o resultado da sql query
 		row := db.QueryRow(query, idint)
@@ -266,7 +278,7 @@ func EditarUsuario(db *sql.DB) http.HandlerFunc {
 		var usuario usuarios.Usuarios
 
 		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -301,35 +313,46 @@ func Editado(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			panic(err)
 		}
+
 		nome := r.FormValue("nome")
 		sobrenome := r.FormValue("sobrenome")
 		email := r.FormValue("email")
 		senha := r.FormValue("senha")
-		acesso := r.FormValue("acesso")
-		if nome == "" || sobrenome == "" || email == "" || acesso == "" {
-			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+		admin := r.FormValue("admin")
+		ativo := r.FormValue("ativo")
+
+		r.ParseForm()
+		formAdmin := r.Form.Get("admin")
+		if formAdmin == "" {
+			admin = "false"
 		}
+		formAtivo := r.Form.Get("ativo")
+		if formAtivo == "" {
+			ativo = "false"
+		}
+
+		//fmt.Println(r.Form)
 
 		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
 		var usuario usuarios.Usuarios
 
 		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query := `UPDATE usuarios SET nome=$1, sobrenome=$2, email=$3, senha=$4, acesso=$5 WHERE id=$6;`
+		query := `UPDATE usuarios SET nome=$1, sobrenome=$2, email=$3, senha=$4, admin=$5, ativo=$6 WHERE id=$7;`
 
 		// _, err = db.Exec(query, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Perfil, &usuario.Mandato, &usuario.Foto, &usuario.Naturalidade, idint)
-		_, err = db.Exec(query, nome, sobrenome, email, senha, acesso, idint)
+		_, err = db.Exec(query, nome, sobrenome, email, senha, admin, ativo, idint)
 		if err != nil {
 			panic(err)
 		}
 
 		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query = `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE id=$1;`
+		query = `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
 
 		//row terá o resultado da sql query
 		row := db.QueryRow(query, idint)
 
 		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -357,10 +380,10 @@ func Deletar(db *sql.DB) http.HandlerFunc {
 			fmt.Println("invalid param format")
 		}
 
-		query := `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE id=$1;`
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
 		row := db.QueryRow(query, idint)
 		var usuario usuarios.Usuarios
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -437,10 +460,10 @@ func Logado(db *sql.DB) http.HandlerFunc {
 		}
 
 		// query baseada em email
-		query := `SELECT id, nome, sobrenome, email, senha, acesso FROM usuarios WHERE email=$1`
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1`
 		row := db.QueryRow(query, email)
 		var usuario usuarios.Usuarios
-		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Acesso)
+		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -459,12 +482,12 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			Secure:   false,
 		}
 
-		nome := usuario.Nome
+		//nome := usuario.Nome
 
-		if usuario.Acesso == "admin" {
+		if usuario.Admin == true {
 			http.SetCookie(w, &c)
 			//w.Header().Add("Authorization", token)
-			Email(nome)
+			//Email(nome)
 			http.Redirect(w, r, "/usuarios/", 307)
 		} else {
 			http.Error(w, "Acesso não autorizado", 401)
@@ -512,7 +535,8 @@ func seed(db *sql.DB) {
 		sobrenome VARCHAR(50) NOT NULL,
 		email VARCHAR(100) NOT NULL UNIQUE,
 		senha VARCHAR(100),
-		acesso VARCHAR(50) NOT NULL
+		admin boolean DEFAULT false NOT NULL,
+		ativo boolean DEFAULT false NOT NULL
 	);
 	`
 	_, err := db.Exec(query1)
@@ -525,9 +549,9 @@ func seed(db *sql.DB) {
 	for x := range us {
 		usuario := us[x]
 		query2 := `
-		INSERT INTO usuarios(nome, sobrenome, email, senha, acesso)
-		VALUES ($1,$2,$3,$4,$5)`
-		_, err = db.Exec(query2, usuario.Nome, usuario.Sobrenome, usuario.Email, usuario.Senha, usuario.Acesso)
+		INSERT INTO usuarios(nome, sobrenome, email, senha, admin, ativo)
+		VALUES ($1,$2,$3,$4,$5,$6)`
+		_, err = db.Exec(query2, usuario.Nome, usuario.Sobrenome, usuario.Email, usuario.Senha, usuario.Admin, usuario.Ativo)
 		if err != nil {
 			panic(err)
 		}

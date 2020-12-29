@@ -20,7 +20,16 @@
         <div class="media-body">
           <h5 class="mt-0">{{$valor.Nome}} {{$valor.Sobrenome}}</h5>
           <p>E-mail: {{$valor.Email}}</p>
-          <p>Acesso: {{$valor.Acesso}}</p>
+          {{if (eq .Admin true)}}
+          <p>Admin: Sim</p>
+          {{ else }}
+          <p>Admin: Não</p>
+          {{ end }}
+          {{if (eq .Ativo true)}}
+          <p>Ativo: Sim</p>
+          {{ else }}
+          <p>Ativo: Não</p>
+          {{ end }}
         </div>
       </div>
       {{end}}

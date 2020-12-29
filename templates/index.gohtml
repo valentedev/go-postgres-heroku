@@ -34,7 +34,6 @@
         <table class="table">
           <tr>
             <th scope="col">Nome</th>
-            <th scope="col">Acesso</th>
           </tr>
           {{range $valor := .Linhas}}
           <tr>
@@ -43,7 +42,6 @@
                 >{{$valor.Nome}} {{$valor.Sobrenome}}</a
               >
             </td>
-            <td>{{$valor.Acesso}}</td>
           </tr>
           {{end}}
         </table>

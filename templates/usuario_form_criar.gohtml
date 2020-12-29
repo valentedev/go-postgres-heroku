@@ -46,20 +46,38 @@
               name="senha"
               placeholder="Senha"
             />
-            <select
-              type="text"
-              class="form-control"
-              name="acesso"
-              placeholder="Acesso"
-            >
-            <option value="admin">Admin</option>
-            <option value="usuario">Usuario</option>
-            </select>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="admin" name="admin" value="false">
+              <label for="admin" class="form-check-label">Admin</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="false">
+              <label for="ativo" class="form-check-label">Ativo</label>
+            </div>
             <button type="submit" class="btn btn-primary mt-3">Enviar</button>
           </form>
         </div>
       </div>
     </div>
+    <script>
+        document.getElementById("admin").addEventListener('change', adminCheckbox);
+        document.getElementById("ativo").addEventListener('change', ativoCheckbox);
 
+        function adminCheckbox(){
+            if (this.checked) {
+                this.value = "true"
+            } else {
+                this.value = "false"
+            }
+        }
+
+        function ativoCheckbox(){
+            if (this.checked) {
+                this.value = "true"
+            } else {
+                this.value = "false"
+            }
+        }
+        </script>
     {{ template "Foot" }}
 {{ end }}
