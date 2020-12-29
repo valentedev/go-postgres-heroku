@@ -42,9 +42,9 @@ func main() {
 	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/", Login(conect))
+	mux.HandleFunc("/login/", Login(conect))
 	mux.HandleFunc("/login/redirect/", Logado(conect))
-	mux.HandleFunc("/usuarios/", TokenMiddleware(Home(conect)))
+	mux.HandleFunc("/", TokenMiddleware(Home(conect)))
 	mux.HandleFunc("/usuario/", TokenMiddleware(Usuario(conect)))
 	mux.HandleFunc("/usuario/criar/", TokenMiddleware(CriarUsuario()))
 	mux.HandleFunc("/usuario/criado/", TokenMiddleware(Criado(conect)))
@@ -70,15 +70,10 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
-		// c, err := r.Cookie("session")
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
-
-		// t, err := TokenCheck(c)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// }
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -428,11 +423,6 @@ func Login(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
 		err := tpl.ExecuteTemplate(w, "Login", nil)
@@ -488,7 +478,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			http.SetCookie(w, &c)
 			//w.Header().Add("Authorization", token)
 			//Email(nome)
-			http.Redirect(w, r, "/usuarios/", 307)
+			http.Redirect(w, r, "/", 307)
 		} else {
 			http.Error(w, "Acesso não autorizado", 401)
 		}
@@ -644,7 +634,7 @@ func TokenMiddleware(next http.Handler) http.HandlerFunc {
 		})
 		if err != nil || !tokenVerificado.Valid {
 			fmt.Println("Token inválido ou inexistente")
-			http.Redirect(w, r, "/", 307)
+			http.Redirect(w, r, "/login", 307)
 		}
 
 		next.ServeHTTP(w, r)
