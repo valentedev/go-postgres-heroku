@@ -29,6 +29,7 @@
                   value=""
                   placeholder="E-mail"
                   onkeyup="BotaoDeletarUsuario(this)"
+                  onkeypress="return event.keyCode != 13;"
                   style="margin-bottom: 20px"
                   autocomplete="off"
                 />
@@ -39,6 +40,7 @@
                   class="btn btn-danger"
                   id="deleteBtn"
                   disabled
+                  
                 >
                   Deletar
                 </button>
