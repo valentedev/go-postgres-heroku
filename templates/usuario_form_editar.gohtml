@@ -20,36 +20,35 @@
             <form
                 action="/usuario/editado/"
                 method="POST"
-                style="margin-bottom: 20px"
-            >
+             >
                 <input
                 type="hidden"
-                class="form-control"
+                class="mb-3 form-control"
                 name="id"
                 value="{{ .ID}}"
                 />
                 <input
                 type="text"
-                class="form-control"
+                class="mb-3 form-control"
                 name="nome"
                 value="{{ .Nome}}"
                 placeholder="Nome"
                 />
                 <input
                 type="text"
-                class="form-control"
+                class="mb-3 form-control"
                 name="sobrenome"
                 value="{{ .Sobrenome}}"
                 placeholder="Sobrenome"
                 />
                 <input
                 type="email"
-                class="form-control"
+                class="mb-3 form-control"
                 name="email"
                 value="{{ .Email}}"
                 placeholder="E-mail"
                 />
-                <div class="form-check">
+                <div class="mb-3 form-check">
                 {{ if (eq .Admin true)}}
                 <input type="checkbox" class="form-check-input" id="admin" name="admin" value="{{.Admin}}" checked="checked">
                 {{ else }}
@@ -57,7 +56,7 @@
                 {{ end }}
                 <label for="admin" class="form-check-label">Admin</label>
                 </div>
-                <div class="form-check">
+                <div class="mb-3 form-check">
                 {{ if (eq .Ativo true)}}
                 <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="{{.Ativo}}" checked>
                 {{ else }}
