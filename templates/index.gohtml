@@ -34,6 +34,8 @@
         <table class="table">
           <tr>
             <th scope="col">Nome</th>
+            <th scope="col" style="text-align: center;">Admin</th>
+            <th scope="col" style="text-align: center;">Ativo</th>
           </tr>
           {{range $valor := .Linhas}}
           <tr>
@@ -41,6 +43,20 @@
               <a href="/usuario/{{$valor.ID}}"
                 >{{$valor.Nome}} {{$valor.Sobrenome}}</a
               >
+            </td>
+            <td style="text-align: center;">
+              {{ if (eq $valor.Admin true)}}
+              <i class="fas fa-check" style="color: green;"></i>
+              {{ else }}
+              <i class="fas fa-times" style="color: red;"></i>
+              {{ end }}
+            </td>
+            <td style="text-align: center;">
+              {{ if (eq $valor.Ativo true)}}
+              <i class="fas fa-check" style="color: green;"></i>
+              {{ else }}
+              <i class="fas fa-times" style="color: red;"></i>
+              {{ end }}
             </td>
           </tr>
           {{end}}

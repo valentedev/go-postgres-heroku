@@ -147,10 +147,30 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
+		c, err := r.Cookie("session")
+		if err != nil {
+			c = &http.Cookie{}
+		}
+
+		tokenEmail, err := TokenCheck(c)
+		if err != nil {
+			panic(err)
+		}
+
+		type Dados struct {
+			Usuario    usuarios.Usuarios
+			TokenEmail string
+		}
+
+		dados := Dados{
+			Usuario:    usuario,
+			TokenEmail: tokenEmail,
+		}
+
 		//Criamos um template tpl
 		tpl := template.Must(template.ParseGlob("./templates/*"))
 		//executamos o template com os dados presentes em "usuario" e enviamos o "response w"
-		err = tpl.ExecuteTemplate(w, "Detalhes", usuario)
+		err = tpl.ExecuteTemplate(w, "Detalhes", dados)
 		if err != nil {
 			panic(err)
 		}
@@ -588,19 +608,23 @@ func TokenCheck(c *http.Cookie) (string, error) {
 	tokenString := c.Value
 
 	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
-			return nil, fmt.Errorf("Alguem tentou hackear o siging method")
-		}
+		// if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
+		// 	return nil, fmt.Errorf("Alguem tentou hackear o siging method")
+		// }
 		return []byte(assinatura), nil
 	})
 
+	if err != nil {
+		panic(err)
+	}
+
 	tokenOK := afterVerificationToken.Valid && err == nil
 
-	mensagemAuth := "ninguém"
+	mensagemAuth := "nada"
 	claims := afterVerificationToken.Claims.(*minhasClaims)
 
 	if tokenOK {
-		mensagemAuth = claims.Nome
+		mensagemAuth = claims.Email
 	}
 
 	return mensagemAuth, nil
