@@ -1,0 +1,60 @@
+{{ define "NovaSenha" }}
+{{ template "Head" }}
+{{ template "Nav" }}
+<div class="row">
+            <a href="/"
+            ><button
+                type="button"
+                class="btn btn-primary"
+                style="margin-bottom: 20px; margin-right: 10px"
+            >
+                inicio
+            </button></a
+            >
+        </div>
+        <div class="row">
+            <h3 style="padding: 10px">Mudar senha de {{.Nome}} {{.Sobrenome}}</h3>
+        </div>
+                <div class="row">
+            <div class="col-md-6">
+            <form
+                action="/usuario/novasenha/confirma/"
+                method="POST"
+             >
+                <input
+                type="password"
+                class="mb-3 form-control"
+                id="senhaUm" 
+                name="senha"
+                value=""
+                placeholder="Nova Senha"
+                />
+                <input
+                type="password"
+                class="mb-3 form-control"
+                id="senhaDois" 
+                name="confirmaSenha"
+                value=""
+                placeholder="Confirmar Senha"
+                onkeyup="BotaoMudarSenha(this)"
+                onkeypress="return event.keyCode != 13;"
+                />
+                <button type="submit" id="confMudarSenha" class="btn btn-primary mt-3" disabled>Enviar</button>
+            </form>
+            </div>
+        </div>
+        </div>
+        <script>
+          // Habilita botão Deletar se email informado for igual al do DB
+          function BotaoMudarSenha() {
+            var btnSubmit = document.getElementById("confMudarSenha");
+            var senhaUm = document.getElementById("senhaUm")
+            var senhaDois = document.getElementById("senhaDois")
+            if (senhaUm.value == senhaDois.value) {
+              btnSubmit.disabled = false;
+            } else {
+              btnSubmit.disabled = true;
+            }
+          }
+        </script>
+{{ end }}

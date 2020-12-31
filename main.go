@@ -52,6 +52,8 @@ func main() {
 	mux.HandleFunc("/usuario/editado/", TokenMiddleware(Editado(conect)))
 	mux.HandleFunc("/usuario/deletar/", TokenMiddleware(Deletar(conect)))
 	mux.HandleFunc("/usuario/deletado/", TokenMiddleware(Deletado(conect)))
+	mux.HandleFunc("/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
+	//mux.HandleFunc("/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -437,11 +439,63 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+//NovaSenha é um handler para mudar a senha do admin logado
+func NovaSenha(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		//"params" é o URL de request. Nesse caso, /usuario/{id}
+		params := r.URL.Path
+		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
+		id := strings.TrimPrefix(params, "/usuario/novasenha/")
+		//convertemos o tipo id de string para int e chamamos de "idint"
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			fmt.Println("invalid param format")
+		}
+
+		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
+
+		//row terá o resultado da sql query
+		row := db.QueryRow(query, idint)
+
+		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		var usuario usuarios.Usuarios
+
+		//copiamos o as informações de "row" para "usuario"
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var tpl *template.Template
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "NovaSenha", usuario)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+}
+
 // Login recebe email e senha e autentica acesso
 func Login(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		logging(r)
+
+		c := http.Cookie{
+			Path:     "/",
+			Name:     "session",
+			Value:    "",
+			HttpOnly: true,
+			Expires:  time.Unix(0, 0),
+			Secure:   false,
+		}
+
+		http.SetCookie(w, &c)
 
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
