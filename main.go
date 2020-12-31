@@ -53,7 +53,7 @@ func main() {
 	mux.HandleFunc("/usuario/deletar/", TokenMiddleware(Deletar(conect)))
 	mux.HandleFunc("/usuario/deletado/", TokenMiddleware(Deletado(conect)))
 	mux.HandleFunc("/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
-	//mux.HandleFunc("/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
+	mux.HandleFunc("/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -478,6 +478,40 @@ func NovaSenha(db *sql.DB) http.HandlerFunc {
 		}
 	}
 
+}
+
+// NovaSenhaConfirma confirma que uma nova senha foi criada
+func NovaSenhaConfirma(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.FormValue("id")
+		idint, err := strconv.Atoi(id)
+		if err != nil {
+			panic(err)
+		}
+		senha := r.FormValue("senha")
+		senhaByte, err := SenhaHash(senha)
+		if err != nil {
+			fmt.Println(err)
+		}
+		senha = string(senhaByte)
+		var usuario usuarios.Usuarios
+		query := `UPDATE usuarios SET senha=$1 WHERE id=$2;`
+		_, err = db.Exec(query, senha, idint)
+		if err != nil {
+			panic(err)
+		}
+		query = `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
+		row := db.QueryRow(query, idint)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			fmt.Println(err)
+		}
+		tpl := template.Must(template.ParseGlob("./templates/*"))
+		err = tpl.ExecuteTemplate(w, "NovaSenhaCriada", usuario)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // Login recebe email e senha e autentica acesso
