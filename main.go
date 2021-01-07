@@ -94,14 +94,21 @@ func Home(db *sql.DB) http.HandlerFunc {
 			linhas = append(linhas, linha)
 		}
 
+		c, err := r.Cookie("session")
+		if err != nil {
+			c = &http.Cookie{}
+		}
+
+		t := TokenNome(c)
+
 		type Dados struct {
-			Linhas []usuarios.Usuarios
-			//Usuario string
+			Linhas  []usuarios.Usuarios
+			Usuario string
 		}
 
 		dados := Dados{
-			Linhas: linhas,
-			//Usuario: t,
+			Linhas:  linhas,
+			Usuario: t,
 		}
 
 		var tpl *template.Template
@@ -154,7 +161,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			c = &http.Cookie{}
 		}
 
-		tokenEmail, err := TokenCheck(c)
+		tokenEmail := TokenEmail(c)
 		if err != nil {
 			panic(err)
 		}
@@ -691,8 +698,8 @@ func Token(u usuarios.Usuarios) (string, error) {
 	return tokenString, nil
 }
 
-// TokenCheck verifica a validade do token
-func TokenCheck(c *http.Cookie) (string, error) {
+// TokenNome verifica a validade do token
+func TokenNome(c *http.Cookie) string {
 
 	tokenString := c.Value
 
@@ -709,14 +716,43 @@ func TokenCheck(c *http.Cookie) (string, error) {
 
 	tokenOK := afterVerificationToken.Valid && err == nil
 
-	mensagemAuth := "nada"
 	claims := afterVerificationToken.Claims.(*minhasClaims)
+	nome := ""
 
 	if tokenOK {
-		mensagemAuth = claims.Email
+		nome := claims.Nome
+		return nome
 	}
 
-	return mensagemAuth, nil
+	return nome
+
+}
+
+// TokenEmail verifica a validade do token
+func TokenEmail(c *http.Cookie) string {
+
+	tokenString := c.Value
+
+	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+		return []byte(assinatura), nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	tokenOK := afterVerificationToken.Valid && err == nil
+
+	claims := afterVerificationToken.Claims.(*minhasClaims)
+	email := ""
+
+	if tokenOK {
+		email := claims.Email
+		return email
+	}
+
+	return email
+
 }
 
 // TokenValid verifica se o token é válido e
