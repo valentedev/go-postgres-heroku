@@ -566,6 +566,10 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			fmt.Println(err)
 		}
 
+		if SenhaHashCheck(usuario.Senha, senha) != nil || usuario.Admin != true {
+			http.Error(w, "Acesso não autorizado", 401)
+		}
+
 		token, err := Token(usuario)
 		if err != nil {
 			panic(err)
@@ -582,14 +586,11 @@ func Logado(db *sql.DB) http.HandlerFunc {
 
 		//nome := usuario.Nome
 
-		if usuario.Admin == true {
-			http.SetCookie(w, &c)
-			//w.Header().Add("Authorization", token)
-			//Email(nome)
-			http.Redirect(w, r, "/", 307)
-		} else {
-			http.Error(w, "Acesso não autorizado", 401)
-		}
+		http.SetCookie(w, &c)
+		//w.Header().Add("Authorization", token)
+		//Email(nome)
+		http.Redirect(w, r, "/", 307)
+
 	}
 }
 
