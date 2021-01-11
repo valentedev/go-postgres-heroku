@@ -99,7 +99,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 			c = &http.Cookie{}
 		}
 
-		t := TokenNome(c)
+		t := TokenPayload(c)
 
 		type Dados struct {
 			Linhas  []usuarios.Usuarios
@@ -108,7 +108,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		dados := Dados{
 			Linhas:  linhas,
-			Usuario: t,
+			Usuario: t.Nome,
 		}
 
 		var tpl *template.Template
@@ -161,7 +161,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			c = &http.Cookie{}
 		}
 
-		tokenEmail := TokenEmail(c)
+		tokenEmail := TokenPayload(c)
 		if err != nil {
 			panic(err)
 		}
@@ -173,7 +173,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 
 		dados := Dados{
 			Usuario:    usuario,
-			TokenEmail: tokenEmail,
+			TokenEmail: tokenEmail.Email,
 		}
 
 		//Criamos um template tpl
@@ -698,18 +698,20 @@ func Token(u usuarios.Usuarios) (string, error) {
 	return tokenString, nil
 }
 
-// TokenNome verifica a validade do token
-func TokenNome(c *http.Cookie) string {
+// Payload armazena os dados retirados de um token válido
+type Payload struct {
+	Nome  string
+	Email string
+}
+
+// TokenPayload verifica a validade do token e retorna um struct com dados do token.payload
+func TokenPayload(c *http.Cookie) Payload {
 
 	tokenString := c.Value
 
 	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		// if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
-		// 	return nil, fmt.Errorf("Alguem tentou hackear o siging method")
-		// }
 		return []byte(assinatura), nil
 	})
-
 	if err != nil {
 		panic(err)
 	}
@@ -717,16 +719,48 @@ func TokenNome(c *http.Cookie) string {
 	tokenOK := afterVerificationToken.Valid && err == nil
 
 	claims := afterVerificationToken.Claims.(*minhasClaims)
-	nome := ""
+
+	var payload Payload
 
 	if tokenOK {
-		nome := claims.Nome
-		return nome
+		payload.Nome = claims.Nome
+		payload.Email = claims.Email
+		return payload
 	}
 
-	return nome
+	return payload
 
 }
+
+// // TokenNome verifica a validade do token
+// func TokenNome(c *http.Cookie) string {
+
+// 	tokenString := c.Value
+
+// 	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+// 		// if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
+// 		// 	return nil, fmt.Errorf("Alguem tentou hackear o siging method")
+// 		// }
+// 		return []byte(assinatura), nil
+// 	})
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	tokenOK := afterVerificationToken.Valid && err == nil
+
+// 	claims := afterVerificationToken.Claims.(*minhasClaims)
+// 	nome := "indefinido"
+
+// 	if tokenOK {
+// 		nome := claims.Nome
+// 		return nome
+// 	}
+
+// 	return nome
+
+// }
 
 // TokenEmail verifica a validade do token
 func TokenEmail(c *http.Cookie) string {
@@ -744,7 +778,7 @@ func TokenEmail(c *http.Cookie) string {
 	tokenOK := afterVerificationToken.Valid && err == nil
 
 	claims := afterVerificationToken.Claims.(*minhasClaims)
-	email := ""
+	email := "indefinido"
 
 	if tokenOK {
 		email := claims.Email
@@ -755,17 +789,17 @@ func TokenEmail(c *http.Cookie) string {
 
 }
 
-// TokenValid verifica se o token é válido e
-func TokenValid(c *http.Cookie) (string, error) {
-	tokenString := c.Value
-	tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(tokenNaoVerificado *jwt.Token) (interface{}, error) {
-		return []byte(assinatura), nil
-	})
-	if !tokenVerificado.Valid {
-		return "", err
-	}
-	return tokenString, nil
-}
+// // TokenValid verifica se o token é válido e
+// func TokenValid(c *http.Cookie) (string, error) {
+// 	tokenString := c.Value
+// 	tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(tokenNaoVerificado *jwt.Token) (interface{}, error) {
+// 		return []byte(assinatura), nil
+// 	})
+// 	if !tokenVerificado.Valid {
+// 		return "", err
+// 	}
+// 	return tokenString, nil
+// }
 
 // TokenMiddleware é um wrapper que vai verificar se há um token válido em cada Handler.
 func TokenMiddleware(next http.Handler) http.HandlerFunc {
@@ -773,7 +807,8 @@ func TokenMiddleware(next http.Handler) http.HandlerFunc {
 
 		c, err := r.Cookie("session")
 		if err != nil {
-			c = &http.Cookie{}
+			http.Redirect(w, r, "/login/", http.StatusSeeOther)
+			return
 		}
 
 		tokenString := c.Value
