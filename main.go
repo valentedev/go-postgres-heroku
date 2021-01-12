@@ -42,18 +42,23 @@ func main() {
 	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/login/", Login(conect))
-	mux.HandleFunc("/login/redirect/", Logado(conect))
-	mux.HandleFunc("/", TokenMiddleware(Home(conect)))
-	mux.HandleFunc("/usuario/", TokenMiddleware(Usuario(conect)))
-	mux.HandleFunc("/usuario/criar/", TokenMiddleware(CriarUsuario()))
-	mux.HandleFunc("/usuario/criado/", TokenMiddleware(Criado(conect)))
-	mux.HandleFunc("/usuario/editar/", TokenMiddleware(EditarUsuario(conect)))
-	mux.HandleFunc("/usuario/editado/", TokenMiddleware(Editado(conect)))
-	mux.HandleFunc("/usuario/deletar/", TokenMiddleware(Deletar(conect)))
-	mux.HandleFunc("/usuario/deletado/", TokenMiddleware(Deletado(conect)))
-	mux.HandleFunc("/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
-	mux.HandleFunc("/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
+	mux.HandleFunc("/", Home())
+	mux.HandleFunc("/admin/login/", Login(conect))
+	mux.HandleFunc("/admin/login/redirect/", Logado(conect))
+	mux.HandleFunc("/admin/", TokenMiddleware(AdminHome(conect)))
+	mux.HandleFunc("/admin/usuario/", TokenMiddleware(Usuario(conect)))
+	mux.HandleFunc("/admin/usuario/criar/", TokenMiddleware(CriarUsuario()))
+	mux.HandleFunc("/admin/usuario/criado/", TokenMiddleware(Criado(conect)))
+	mux.HandleFunc("/admin/usuario/editar/", TokenMiddleware(EditarUsuario(conect)))
+	mux.HandleFunc("/admin/usuario/editado/", TokenMiddleware(Editado(conect)))
+	mux.HandleFunc("/admin/usuario/deletar/", TokenMiddleware(Deletar(conect)))
+	mux.HandleFunc("/admin/usuario/deletado/", TokenMiddleware(Deletado(conect)))
+	mux.HandleFunc("/admin/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
+	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
+	//mux.HandleFunc("/cadastro/", Cadastrar(conect))
+	//mux.HandleFunc("/cadastro/redirect", Cadastrado(conect))
+	//mux.HandleFunc("/api/", APIHome(conect))
+	//
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -65,9 +70,8 @@ func main() {
 
 }
 
-//Home é uma função que vai usar o Template index.html e injeta informações de usuarios em uma tabela
-func Home(db *sql.DB) http.HandlerFunc {
-
+// Home é a página de inicio do aplicativo
+func Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		logging(r)
@@ -76,6 +80,24 @@ func Home(db *sql.DB) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
+
+		var tpl *template.Template
+
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+
+		err := tpl.ExecuteTemplate(w, "Index", nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// AdminHome é uma função que vai usar o Template index.html e injeta informações de usuarios em uma tabela
+func AdminHome(db *sql.DB) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -115,7 +137,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 
 		tpl = template.Must(template.ParseGlob("./templates/*"))
 
-		err = tpl.ExecuteTemplate(w, "Index", dados)
+		err = tpl.ExecuteTemplate(w, "Admin", dados)
 		if err != nil {
 			panic(err)
 		}
@@ -134,7 +156,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
 		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-		id := strings.TrimPrefix(params, "/usuario/")
+		id := strings.TrimPrefix(params, "/admin/usuario/")
 		//convertemos o tipo id de string para int e chamamos de "idint"
 		idint, err := strconv.Atoi(id)
 		if err != nil {
@@ -221,7 +243,7 @@ func Criado(db *sql.DB) http.HandlerFunc {
 		admin := r.FormValue("admin")
 		ativo := r.FormValue("ativo")
 		if nome == "" || sobrenome == "" || email == "" {
-			http.Redirect(w, r, "/usuario/criar/", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/usuario/criar/", http.StatusSeeOther)
 		}
 
 		senhaByte, err := SenhaHash(senha)
@@ -285,7 +307,7 @@ func EditarUsuario(db *sql.DB) http.HandlerFunc {
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
 		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-		id := strings.TrimPrefix(params, "/usuario/editar/")
+		id := strings.TrimPrefix(params, "/admin/usuario/editar/")
 		//convertemos o tipo id de string para int e chamamos de "idint"
 		idint, err := strconv.Atoi(id)
 		if err != nil {
@@ -398,7 +420,7 @@ func Deletar(db *sql.DB) http.HandlerFunc {
 		logging(r)
 
 		params := r.URL.Path
-		id := strings.TrimPrefix(params, "/usuario/deletar/")
+		id := strings.TrimPrefix(params, "/admin/usuario/deletar/")
 		idint, err := strconv.Atoi(id)
 		if err != nil {
 			fmt.Println("invalid param format")
@@ -429,7 +451,7 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 		logging(r)
 
 		params := r.URL.Path
-		id := strings.TrimPrefix(params, "/usuario/deletado/")
+		id := strings.TrimPrefix(params, "/admin/usuario/deletado/")
 		idint, err := strconv.Atoi(id)
 		if err != nil {
 			fmt.Println("invalid param format")
@@ -441,7 +463,7 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 			panic(err)
 		}
 
-		http.Redirect(w, r, "/", 307)
+		http.Redirect(w, r, "/admin/", 307)
 
 	}
 }
@@ -452,10 +474,20 @@ func NovaSenha(db *sql.DB) http.HandlerFunc {
 
 		logging(r)
 
+		c, err := r.Cookie("session")
+		if err != nil {
+			c = &http.Cookie{}
+		}
+
+		tokenEmail := TokenPayload(c).Email
+		if err != nil {
+			panic(err)
+		}
+
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
 		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-		id := strings.TrimPrefix(params, "/usuario/novasenha/")
+		id := strings.TrimPrefix(params, "/admin/usuario/novasenha/")
 		//convertemos o tipo id de string para int e chamamos de "idint"
 		idint, err := strconv.Atoi(id)
 		if err != nil {
@@ -475,6 +507,12 @@ func NovaSenha(db *sql.DB) http.HandlerFunc {
 		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
 			fmt.Println(err)
+		}
+
+		// Caso o email do usuario seja diferente do email do token, o processo é interrompido. Assim se evita que um admin altere a senha outro usuário.
+		if tokenEmail != usuario.Email {
+			http.Error(w, "Unauthorized", 401)
+			return
 		}
 
 		var tpl *template.Template
@@ -513,6 +551,7 @@ func NovaSenhaConfirma(db *sql.DB) http.HandlerFunc {
 		if err != nil {
 			fmt.Println(err)
 		}
+
 		tpl := template.Must(template.ParseGlob("./templates/*"))
 		err = tpl.ExecuteTemplate(w, "NovaSenhaCriada", usuario)
 		if err != nil {
@@ -561,7 +600,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 		email := r.FormValue("email")
 		senha := r.FormValue("senha")
 		if email == "" || senha == "" {
-			http.Redirect(w, r, "/login/", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/login/", http.StatusSeeOther)
 		}
 
 		// query baseada em email
@@ -596,7 +635,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 		http.SetCookie(w, &c)
 		//w.Header().Add("Authorization", token)
 		//Email(nome)
-		http.Redirect(w, r, "/", 307)
+		http.Redirect(w, r, "/admin/", 307)
 
 	}
 }
@@ -732,82 +771,13 @@ func TokenPayload(c *http.Cookie) Payload {
 
 }
 
-// // TokenNome verifica a validade do token
-// func TokenNome(c *http.Cookie) string {
-
-// 	tokenString := c.Value
-
-// 	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-// 		// if beforeVeritificationToken.Method.Alg() != jwt.SigningMethodES256.Alg() {
-// 		// 	return nil, fmt.Errorf("Alguem tentou hackear o siging method")
-// 		// }
-// 		return []byte(assinatura), nil
-// 	})
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	tokenOK := afterVerificationToken.Valid && err == nil
-
-// 	claims := afterVerificationToken.Claims.(*minhasClaims)
-// 	nome := "indefinido"
-
-// 	if tokenOK {
-// 		nome := claims.Nome
-// 		return nome
-// 	}
-
-// 	return nome
-
-// }
-
-// TokenEmail verifica a validade do token
-func TokenEmail(c *http.Cookie) string {
-
-	tokenString := c.Value
-
-	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		return []byte(assinatura), nil
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	tokenOK := afterVerificationToken.Valid && err == nil
-
-	claims := afterVerificationToken.Claims.(*minhasClaims)
-	email := "indefinido"
-
-	if tokenOK {
-		email := claims.Email
-		return email
-	}
-
-	return email
-
-}
-
-// // TokenValid verifica se o token é válido e
-// func TokenValid(c *http.Cookie) (string, error) {
-// 	tokenString := c.Value
-// 	tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(tokenNaoVerificado *jwt.Token) (interface{}, error) {
-// 		return []byte(assinatura), nil
-// 	})
-// 	if !tokenVerificado.Valid {
-// 		return "", err
-// 	}
-// 	return tokenString, nil
-// }
-
 // TokenMiddleware é um wrapper que vai verificar se há um token válido em cada Handler.
 func TokenMiddleware(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		c, err := r.Cookie("session")
 		if err != nil {
-			http.Redirect(w, r, "/login/", http.StatusSeeOther)
+			http.Redirect(w, r, "/admin/login/", http.StatusSeeOther)
 			return
 		}
 
@@ -818,7 +788,7 @@ func TokenMiddleware(next http.Handler) http.HandlerFunc {
 		})
 		if err != nil || !tokenVerificado.Valid {
 			fmt.Println("Token inválido ou inexistente")
-			http.Redirect(w, r, "/login/", 307)
+			http.Redirect(w, r, "/admin/login/", 307)
 		}
 
 		next.ServeHTTP(w, r)

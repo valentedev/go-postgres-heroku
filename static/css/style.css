@@ -1,3 +1,12 @@
+body {
+  background-color: khaki;
+}
+
 form input.form-control {
   margin-bottom: 5px;
+}
+
+a.nav-logo {
+  text-decoration: none;
+  color: inherit;
 }

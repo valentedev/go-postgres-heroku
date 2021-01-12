@@ -5,7 +5,7 @@
         <h4 style="padding: 10px">Detalhes do Usuário</h4>
       </div>
       <div class="mb-3 row">
-            <a href="/"
+            <a href="/admin/"
             ><button
                 type="button"
                 class="btn btn-primary"
@@ -14,7 +14,7 @@
                 inicio
             </button></a
             >
-            <a href="/usuario/editar/{{ .Usuario.ID }}"
+            <a href="/admin/usuario/editar/{{ .Usuario.ID }}"
             ><button
                 type="button"
                 class="btn btn-primary"
@@ -25,7 +25,7 @@
             >
 
             {{ if (eq .Usuario.Email .TokenEmail)}}
-            <a href="/usuario/novasenha/{{ .Usuario.ID }}"
+            <a href="/admin/usuario/novasenha/{{ .Usuario.ID }}"
             ><button
                 type="button"
                 class="btn btn-success"
@@ -35,7 +35,7 @@
             </button></a
             >
             {{ end }}
-            <a href="/usuario/deletar/{{ .Usuario.ID }}"
+            <a href="/admin/usuario/deletar/{{ .Usuario.ID }}"
             ><button
                 type="button"
                 class="btn btn-danger"

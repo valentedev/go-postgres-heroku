@@ -5,7 +5,7 @@
         <h4 style="padding: 10px">Nova senha criada!</h4>
       </div>
       <div class="row">
-            <a href="/"
+            <a href="/admin/"
             ><button
                 type="button"
                 class="btn btn-primary"
@@ -14,7 +14,7 @@
                 inicio
             </button></a
             >
-            <a href="/usuario/editar/{{ .ID }}"
+            <a href="/admin/usuario/editar/{{ .ID }}"
             ><button
                 type="button"
                 class="btn btn-primary"
@@ -23,22 +23,6 @@
                 editar
             </button></a>
         </div>
-      {{/* <div class="media">
-        <div class="media-body">
-          <h5 class="mt-0">{{ .Nome }} {{ .Sobrenome }}</h5>
-          <p>E-mail: {{ .Email }}</p>
-          {{if (eq .Admin true)}}
-          <p>Admin: Sim</p>
-          {{ else }}
-          <p>Admin: Não</p>
-          {{ end }}
-          {{if (eq .Ativo true)}}
-          <p>Ativo: Sim</p>
-          {{ else }}
-          <p>Ativo: Não</p>
-          {{ end }}
-        </div>
-      </div> */}}
     </div>
     {{ template "Foot" }}
 {{ end }}
