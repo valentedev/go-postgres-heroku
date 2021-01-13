@@ -55,10 +55,10 @@ func main() {
 	mux.HandleFunc("/admin/usuario/deletado/", TokenMiddleware(Deletado(conect)))
 	mux.HandleFunc("/admin/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
 	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
-	//mux.HandleFunc("/cadastro/", Cadastrar(conect))
-	//mux.HandleFunc("/cadastro/redirect", Cadastrado(conect))
-	//mux.HandleFunc("/api/", APIHome(conect))
-	//
+	mux.HandleFunc("/api/", APIHome())
+	//mux.HandleFunc("/api/login/", APILogin(conect))
+	//mux.HandleFunc("/api/cadastro/", APICadastro(conect))
+	//mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -720,7 +720,7 @@ func Token(u usuarios.Usuarios) (string, error) {
 
 	claims := minhasClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
 			Issuer:    "go-postgres-heroku",
 		},
 		Email: u.Email,
@@ -789,6 +789,7 @@ func TokenMiddleware(next http.Handler) http.HandlerFunc {
 		if err != nil || !tokenVerificado.Valid {
 			fmt.Println("Token inválido ou inexistente")
 			http.Redirect(w, r, "/admin/login/", 307)
+			return
 		}
 
 		next.ServeHTTP(w, r)
@@ -804,6 +805,25 @@ func SenhaHash(senha string) ([]byte, error) {
 // SenhaHashCheck confirma se a senha encriptada é correta
 func SenhaHashCheck(SenhaHash, senha string) error {
 	return bcrypt.CompareHashAndPassword([]byte(SenhaHash), []byte(senha))
+}
+
+// API ##########################
+
+// APIHome - home para os endpoints
+func APIHome() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		logging(r)
+
+		var tpl *template.Template
+
+		tpl = template.Must(template.ParseGlob("./templates/*"))
+
+		err := tpl.ExecuteTemplate(w, "API", nil)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // ENVIAR EMAIL #################
