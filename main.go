@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -56,7 +57,7 @@ func main() {
 	mux.HandleFunc("/admin/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
 	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
 	mux.HandleFunc("/api/", APIHome())
-	//mux.HandleFunc("/api/login/", APILogin(conect))
+	mux.HandleFunc("/api/login/", APILogin(conect))
 	//mux.HandleFunc("/api/cadastro/", APICadastro(conect))
 	//mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
 
@@ -720,7 +721,7 @@ func Token(u usuarios.Usuarios) (string, error) {
 
 	claims := minhasClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
 			Issuer:    "go-postgres-heroku",
 		},
 		Email: u.Email,
@@ -822,6 +823,45 @@ func APIHome() http.HandlerFunc {
 		err := tpl.ExecuteTemplate(w, "API", nil)
 		if err != nil {
 			panic(err)
+		}
+	}
+}
+
+// APILogin recebe um json com email+senha e consulta o DB
+func APILogin(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		var usuario usuarios.Usuarios
+
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+
+		}
+
+		logging(r)
+
+		json.NewDecoder(r.Body).Decode(&usuario)
+
+		senhaJSON := usuario.Senha
+
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
+		row := db.QueryRow(query, usuario.Email)
+		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			panic(err)
+		}
+
+		if SenhaHashCheck(usuario.Senha, senhaJSON) == nil {
+			t, err := Token(usuario)
+			if err != nil {
+				panic(err)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(t)
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode("Não autorizado")
 		}
 	}
 }

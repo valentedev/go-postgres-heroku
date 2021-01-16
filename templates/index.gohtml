@@ -2,8 +2,17 @@
     {{ template "Head" }}
     {{ template "Nav" }}
         <div class="col-md-6">
-            <p>Acessar: <a href="/admin/">/admin</a></p>
-            <p>Acessar: <a href="/api/">/api</a></p>
+            <div class="row">
+                <a href="/admin"
+                ><button type="submit" class="btn btn-primary" style="width: 100px; margin: 20px;">Admin</button></a
+                >
+            </div>
+            <div class="row">
+                <a href="/api"
+                ><button type="submit" class="btn btn-primary" style="width: 100px; margin: 20px;">API</button></a
+                >
+            </div>
         </div>
+        
     {{ template "Foot" }}
 {{ end }}

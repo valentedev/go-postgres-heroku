@@ -2,13 +2,13 @@ package usuarios
 
 //Usuarios é uma struct que servirá como base para o futuro banco de dados
 type Usuarios struct {
-	ID        int
-	Nome      string
-	Sobrenome string
-	Email     string
-	Senha     string
-	Admin     bool
-	Ativo     bool
+	ID        int    `json:"id"`
+	Nome      string `json:"nome"`
+	Sobrenome string `json:"sobrenome"`
+	Email     string `json:"email"`
+	Senha     string `json:"senha"`
+	Admin     bool   `json:"admin"`
+	Ativo     bool   `json:"ativo"`
 }
 
 //UsuariosSlice vai reunir um ou mais Usuários que serão renderizados no Template index.html
