@@ -57,8 +57,8 @@ func main() {
 	mux.HandleFunc("/admin/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
 	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
 	mux.HandleFunc("/api/", APIHome())
-	mux.HandleFunc("/api/login/", APILogin(conect))
-	mux.HandleFunc("/api/cadastro/", APICadastro(conect))
+	mux.HandleFunc("/api/login", APILogin(conect))
+	mux.HandleFunc("/api/cadastro", APICadastro(conect))
 	//mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
@@ -827,7 +827,7 @@ func APIHome() http.HandlerFunc {
 	}
 }
 
-// APILogin recebe um json com email+senha e consulta o DB
+// APILogin recebe um JSON com email+senha, consulta o DB e retorno um token de acesso
 func APILogin(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -866,6 +866,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+// APICadastro recebe un JSON com dados de nome, sobrenome, email e senha e retorna um mensagem de sucesso
 func APICadastro(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

@@ -1,12 +1,49 @@
-<div class="col-md-6">
-  <div class="row">
-    <a href="/admin"
-      ><button type="submit" class="btn btn-primary">Admin</button></a
-    >
-  </div>
-  <div class="row">
-    <a href="/api"
-      ><button type="submit" class="btn btn-primary">API</button></a
-    >
-  </div>
+{{ define "API" }} {{ template "Head" }} {{ template "Nav" }}
+<h3>Documentação API</h3>
+<div class="col-md-8 pt-5">
+  <table class="table">
+    <tr>
+      <th scope="col">URL</th>
+      <th scope="col" style="text-align: center">Método</th>
+      <th scope="col" style="text-align: center">JSON / Parâmetros</th>
+      <th scope="col" style="text-align: center">Retorno</th>
+    </tr>
+    <tr>
+      <td>
+        <p>/login</p>
+      </td>
+      <td style="text-align: center">
+        <p>GET</p>
+      </td>
+      <td>
+        <p>{</p>
+        <p>"email": "fdt@email.com",</p>
+        <p>"senha": "senha"</p>
+        <p>}</p>
+      </td>
+      <td style="text-align: center">
+        <p>Token de acesso</p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <p>/cadastro</p>
+      </td>
+      <td style="text-align: center">
+        <p>POST</p>
+      </td>
+      <td>
+        <p>{</p>
+        <p>"nome": "Fulano",</p>
+        <p>"sobrenome": "de Tal",</p>
+        <p>"email": "fdt@email.com",</p>
+        <p>"senha": "senha"</p>
+        <p>}</p>
+      </td>
+      <td style="text-align: center">
+        <p>Mensagem</p>
+      </td>
+    </tr>
+  </table>
 </div>
+{{ template "Foot" }} {{ end }}
