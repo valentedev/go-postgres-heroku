@@ -58,7 +58,7 @@ func main() {
 	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
 	mux.HandleFunc("/api/", APIHome())
 	mux.HandleFunc("/api/login/", APILogin(conect))
-	//mux.HandleFunc("/api/cadastro/", APICadastro(conect))
+	mux.HandleFunc("/api/cadastro/", APICadastro(conect))
 	//mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
@@ -864,6 +864,42 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 			json.NewEncoder(w).Encode("Não autorizado")
 		}
 	}
+}
+
+func APICadastro(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		var usuario usuarios.Usuarios
+
+		if r.Method != "POST" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+
+		}
+
+		logging(r)
+
+		json.NewDecoder(r.Body).Decode(&usuario)
+
+		senhaJSON := usuario.Senha
+		senhaEncrip, err := SenhaHash(senhaJSON)
+		if err != nil {
+			panic(err)
+		}
+
+		query := `INSERT INTO usuarios (nome, sobrenome, email, senha, admin, ativo) VALUES ($1,$2,$3,$4,$5,$6);`
+		_, err = db.Exec(query, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, senhaEncrip, "false", "false")
+		if err != nil {
+			panic(err)
+		}
+
+		sucesso := "Usuário cadastrado com sucesso!"
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(sucesso)
+
+	}
+
 }
 
 // ENVIAR EMAIL #################
