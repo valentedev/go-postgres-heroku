@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -59,7 +60,8 @@ func main() {
 	mux.HandleFunc("/api/", APIHome())
 	mux.HandleFunc("/api/login", APILogin(conect))
 	mux.HandleFunc("/api/cadastro", APICadastro(conect))
-	//mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
+	mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
+	//mux.HandleFunc("/api/emailconfirma/", APIEmailConfirma(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -673,6 +675,7 @@ func conectarDBLocal() *sql.DB {
 func seed(db *sql.DB) {
 	//apaga tabela USUARIOS anterior, caso ela exista, e cria uma nova tabela com os campos abaixo
 	query1 := `
+	DROP TABLE IF EXISTS vercod;
 	DROP TABLE IF EXISTS usuarios;
 	CREATE TABLE usuarios (
 		id SERIAL PRIMARY KEY,
@@ -683,6 +686,13 @@ func seed(db *sql.DB) {
 		senha VARCHAR(100),
 		admin boolean DEFAULT false NOT NULL,
 		ativo boolean DEFAULT false NOT NULL
+	);
+
+	CREATE TABLE vercod (
+		id SERIAL PRIMARY KEY,
+		criado_em TIMESTAMP DEFAULT Now() NOT NULL,
+		usuario BIGINT REFERENCES usuarios (id) ON DELETE CASCADE NOT NULL,
+		codigo VARCHAR(16) NOT NULL UNIQUE
 	);
 	`
 	_, err := db.Exec(query1)
@@ -903,15 +913,72 @@ func APICadastro(db *sql.DB) http.HandlerFunc {
 
 }
 
+// APINovaSenha envia um email de verificação ao usuario
+func APINovaSenha(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var usuario usuarios.Usuarios
+
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+
+		}
+
+		logging(r)
+
+		json.NewDecoder(r.Body).Decode(&usuario)
+
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
+		row := db.QueryRow(query, usuario.Email)
+		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			panic(err)
+		}
+
+		codigo := CodigoVerificação(16)
+		id := usuario.ID
+		query = `INSERT INTO vercod (usuario, codigo) VALUES ($1,$2)`
+		_, err = db.Exec(query, id, codigo)
+		if err != nil {
+			panic(err)
+		}
+
+		nome := usuario.Nome
+		email := usuario.Email
+		EnviaEmail(nome, email, codigo)
+	}
+}
+
+// func APIEmailConfirma() {
+
+// }
+
 // ENVIAR EMAIL #################
 
-// Email ...
-func Email(nome string) {
-	from := mail.NewEmail("Rodrigo Valentergs", "valentergs@gmail.com")
-	subject := "Bem-vindo " + nome + "!"
-	to := mail.NewEmail(nome, "rodrigovalente@hotmail.com")
+const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// CodigoVerificação é um código aleatório de 8 digitos que é enviado ao usuário para verificação autenticidade
+func CodigoVerificação(n int) string {
+	sb := strings.Builder{}
+	sb.Grow(n)
+	for i := 0; i < n; i++ {
+		x := rand.Int63() % int64(len(alfaBeta))
+		sb.WriteByte(alfaBeta[x])
+	}
+	return sb.String()
+}
+
+// EnviaEmail ...
+func EnviaEmail(nome, email, codigo string) {
+
+	from := mail.NewEmail("Rodrigo Valente", "valentergs@gmail.com")
+	subject := "Troca de senha - Admin.app"
+	to := mail.NewEmail(nome, email)
 	plainTextContent := "and easy to do anywhere, even with Go"
-	htmlContent := nome + ", bem-vindo ao app"
+	htmlContent := `
+	Clique no link abaixo para solicitar troca de sua senha.
+	http://localhost:8080/api/emailconfirma/` + codigo + email
+
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	response, err := client.Send(message)
