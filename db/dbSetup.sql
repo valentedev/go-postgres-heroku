@@ -20,3 +20,10 @@ CREATE TABLE usuarios (
     acesso VARCHAR(50) NOT NULL
 );
 
+CREATE TABLE vercod (
+    id SERIAL PRIMARY KEY,
+    criado_em TIMESTAMP DEFAULT Now() NOT NULL,
+    usuario BIGINT REFERENCES usuarios (id) ON DELETE CASCADE NOT NULL,
+    codigo VARCHAR(16) NOT NULL UNIQUE
+);
+

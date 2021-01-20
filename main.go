@@ -60,8 +60,8 @@ func main() {
 	mux.HandleFunc("/api/", APIHome())
 	mux.HandleFunc("/api/login", APILogin(conect))
 	mux.HandleFunc("/api/cadastro", APICadastro(conect))
-	mux.HandleFunc("/api/novasenha/", APINovaSenha(conect))
-	//mux.HandleFunc("/api/emailconfirma/", APIEmailConfirma(conect))
+	mux.HandleFunc("/api/pedirnovasenha", APIPedirNovaSenha(conect))
+	mux.HandleFunc("/api/emailconfirma/", APIEmailConfirma(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -679,7 +679,7 @@ func seed(db *sql.DB) {
 	DROP TABLE IF EXISTS usuarios;
 	CREATE TABLE usuarios (
 		id SERIAL PRIMARY KEY,
-		criado_em TIMESTAMP DEFAULT Now() NOT NULL,
+		criado_em TIMESTAMPTZ DEFAULT Now() NOT NULL,
 		nome VARCHAR(50) NOT NULL,
 		sobrenome VARCHAR(50) NOT NULL,
 		email VARCHAR(100) NOT NULL UNIQUE,
@@ -690,7 +690,7 @@ func seed(db *sql.DB) {
 
 	CREATE TABLE vercod (
 		id SERIAL PRIMARY KEY,
-		criado_em TIMESTAMP DEFAULT Now() NOT NULL,
+		criado_em TIMESTAMPTZ DEFAULT Now() NOT NULL,
 		usuario BIGINT REFERENCES usuarios (id) ON DELETE CASCADE NOT NULL,
 		codigo VARCHAR(16) NOT NULL UNIQUE
 	);
@@ -736,6 +736,11 @@ func Token(u usuarios.Usuarios) (string, error) {
 		},
 		Email: u.Email,
 		Nome:  u.Nome,
+	}
+
+	// evita que alguem logado com não-admin use esse token
+	if u.Admin == false {
+		return "", fmt.Errorf("Não autorizado %w", err)
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
@@ -913,8 +918,8 @@ func APICadastro(db *sql.DB) http.HandlerFunc {
 
 }
 
-// APINovaSenha envia um email de verificação ao usuario
-func APINovaSenha(db *sql.DB) http.HandlerFunc {
+// APIPedirNovaSenha ...
+func APIPedirNovaSenha(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var usuario usuarios.Usuarios
 
@@ -936,29 +941,101 @@ func APINovaSenha(db *sql.DB) http.HandlerFunc {
 		}
 
 		codigo := CodigoVerificação(16)
+
 		id := usuario.ID
+		nome := usuario.Nome
+		email := usuario.Email
+
 		query = `INSERT INTO vercod (usuario, codigo) VALUES ($1,$2)`
 		_, err = db.Exec(query, id, codigo)
 		if err != nil {
 			panic(err)
 		}
 
-		nome := usuario.Nome
-		email := usuario.Email
 		EnviaEmail(nome, email, codigo)
 	}
 }
 
-// func APIEmailConfirma() {
+// Vercod é uma struct para verificação de codigo
+type Vercod struct {
+	ID      int
+	Criacao string
+	Usuario int
+	Codigo  string
+}
 
-// }
+// APIEmailConfirma recebe um link com o codigo de verificação
+func APIEmailConfirma(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var usuario usuarios.Usuarios
+		var vercod Vercod
 
-// ENVIAR EMAIL #################
+		if r.Method != "GET" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
 
-const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		}
+
+		logging(r)
+
+		// id será o código de verificação informado no URL
+		params := r.URL.Path
+		id := strings.TrimPrefix(params, "/api/emailconfirma/")
+
+		// faz uma consulta no BD se o id (código de verificação) existe
+		query := `SELECT id, criado_em, usuario, codigo FROM vercod WHERE codigo=$1;`
+		row := db.QueryRow(query, id)
+		// coloca o resultado da consulta no struct Vercod
+		err := row.Scan(&vercod.ID, &vercod.Criacao, &vercod.Usuario, &vercod.Codigo)
+		if err != nil {
+			panic(err)
+		}
+
+		// aloca a data de criação encontrada na variável criacaoVercod
+		criacaoVercod := vercod.Criacao
+		// formata criacaoVercod para time.Time, formato RFC3339
+		inicio, err := time.Parse(time.RFC3339, criacaoVercod)
+		if err != nil {
+			panic(err)
+		}
+
+		fim := time.Now()
+		// estabelece a diferença de tempo entre a criação do código de verificação e o momento da consulta
+		delta := fim.Sub(inicio)
+
+		// se delta for maior que 10 min retorna JSON com mensagem
+		if delta > (time.Minute * 10) {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode("Seu código de verificação está vencido")
+			return
+		}
+
+		// consulta o BD para trazer o usuário informado no vercod
+		query = `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
+		row = db.QueryRow(query, vercod.Usuario)
+		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			panic(err)
+		}
+
+		// emite um token com esse o usuário
+		// TODO: criar TokenAPI que será usado apenas pelo usuário, não Admin
+		token, err := Token(usuario)
+		if err != nil {
+			panic(err)
+		}
+
+		// responde com um JSON + token com usuário. Esse usuário será comparado com o usuário logado no Frontend.
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(token)
+
+	}
+
+}
 
 // CodigoVerificação é um código aleatório de 8 digitos que é enviado ao usuário para verificação autenticidade
 func CodigoVerificação(n int) string {
+	const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	sb := strings.Builder{}
 	sb.Grow(n)
 	for i := 0; i < n; i++ {
@@ -968,7 +1045,7 @@ func CodigoVerificação(n int) string {
 	return sb.String()
 }
 
-// EnviaEmail ...
+// EnviaEmail para verificação e troca de senha
 func EnviaEmail(nome, email, codigo string) {
 
 	from := mail.NewEmail("Rodrigo Valente", "valentergs@gmail.com")
@@ -977,7 +1054,7 @@ func EnviaEmail(nome, email, codigo string) {
 	plainTextContent := "and easy to do anywhere, even with Go"
 	htmlContent := `
 	Clique no link abaixo para solicitar troca de sua senha.
-	http://localhost:8080/api/emailconfirma/` + codigo + email
+	http://localhost:8080/api/emailconfirma/` + codigo
 
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
