@@ -16,6 +16,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/valentedev/go-postgres-heroku/usuarios"
@@ -61,14 +62,27 @@ func main() {
 	mux.HandleFunc("/api/login", APILogin(conect))
 	mux.HandleFunc("/api/cadastro", APICadastro(conect))
 	mux.HandleFunc("/api/pedirnovasenha", APIPedirNovaSenha(conect))
-	mux.HandleFunc("/api/emailconfirma/", APIEmailConfirma(conect))
+	mux.HandleFunc("/api/mudarsenha", APIMudarSenha(conect))
+	mux.HandleFunc("/api/emailconfirma", APIEmailConfirma(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
 	//seed(conect)
 
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+		// Enable Debugging for testing, consider disabling in production
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut, http.MethodOptions},
+		AllowedHeaders: []string{"Authorization", "Content-Type"},
+		Debug:          true,
+	})
+
+	handler := c.Handler(mux)
+
 	addr := ":" + port
-	err = http.ListenAndServe(addr, mux)
+	log.Println("Listen on port 8080...")
+	err = http.ListenAndServe(addr, handler)
 	log.Fatal(err)
 
 }
@@ -753,6 +767,42 @@ func Token(u usuarios.Usuarios) (string, error) {
 	return tokenString, nil
 }
 
+// TokenAPI envia uma string para o client que será usada para autenticação.
+func TokenAPI(u usuarios.Usuarios) (string, error) {
+
+	var err error
+
+	claims := minhasClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			Issuer:    "go-postgres-heroku",
+		},
+		Email: u.Email,
+		Nome:  u.Nome,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
+
+	tokenString, err := token.SignedString([]byte(assinatura))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return tokenString, nil
+}
+
+// TokenCheck verifica se o Token é válido
+func TokenCheck(t string) bool {
+	afterVerificationToken, err := jwt.ParseWithClaims(t, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+		return []byte(assinatura), nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return afterVerificationToken.Valid
+}
+
 // Payload armazena os dados retirados de um token válido
 type Payload struct {
 	Nome  string
@@ -848,7 +898,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 
 		var usuario usuarios.Usuarios
 
-		if r.Method != "GET" {
+		if r.Method != "POST" {
 			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
 			return
 
@@ -859,6 +909,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 		json.NewDecoder(r.Body).Decode(&usuario)
 
 		senhaJSON := usuario.Senha
+		fmt.Println(usuario.Email)
 
 		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
 		row := db.QueryRow(query, usuario.Email)
@@ -867,13 +918,28 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 			panic(err)
 		}
 
+		type Dados struct {
+			Nome      string
+			Sobrenome string
+			Email     string
+			Token     string
+		}
+
+		t, err := TokenAPI(usuario)
+		if err != nil {
+			panic(err)
+		}
+
+		dados := Dados{
+			Nome:      usuario.Nome,
+			Sobrenome: usuario.Sobrenome,
+			Email:     usuario.Email,
+			Token:     t,
+		}
+
 		if SenhaHashCheck(usuario.Senha, senhaJSON) == nil {
-			t, err := Token(usuario)
-			if err != nil {
-				panic(err)
-			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(t)
+			json.NewEncoder(w).Encode(dados)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode("Não autorizado")
@@ -953,6 +1019,54 @@ func APIPedirNovaSenha(db *sql.DB) http.HandlerFunc {
 		}
 
 		EnviaEmail(nome, email, codigo)
+	}
+}
+
+// MudarSenhaStruct Recebe JSON com informações de usuário que quer mudar senha
+type MudarSenhaStruct struct {
+	Token string `json:"token"`
+	Email string `json:"email"`
+	Senha string `json:"senha"`
+}
+
+// APIMudarSenha ...
+func APIMudarSenha(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//var usuario usuarios.Usuarios
+		var mudarSenha MudarSenhaStruct
+
+		if r.Method != "POST" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+		}
+
+		logging(r)
+		json.NewDecoder(r.Body).Decode(&mudarSenha)
+		senha, err := SenhaHash(mudarSenha.Senha)
+		if err != nil {
+			panic(err)
+		}
+		email := mudarSenha.Email
+		token := mudarSenha.Token
+
+		tokenOK := TokenCheck(token)
+		if tokenOK != true {
+			panic(err)
+		}
+
+		// query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
+		// row := db.QueryRow(query, usuario.Email)
+		// err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		// if err != nil {
+		// 	panic(err)
+		// }
+
+		query := `UPDATE usuarios SET senha=$1 WHERE email=$2;`
+		_, err = db.Exec(query, senha, email)
+		if err != nil {
+			panic(err)
+		}
+
 	}
 }
 
