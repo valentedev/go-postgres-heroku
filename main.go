@@ -909,7 +909,6 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 		json.NewDecoder(r.Body).Decode(&usuario)
 
 		senhaJSON := usuario.Senha
-		fmt.Println(usuario.Email)
 
 		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
 		row := db.QueryRow(query, usuario.Email)
