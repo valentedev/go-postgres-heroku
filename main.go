@@ -899,49 +899,34 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 		var usuario usuarios.Usuarios
 
 		if r.Method != "POST" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			http.Error(w, "Método não autorizado", 405)
 			return
-
 		}
 
 		logging(r)
 
 		json.NewDecoder(r.Body).Decode(&usuario)
-
 		senhaJSON := usuario.Senha
 
 		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
 		row := db.QueryRow(query, usuario.Email)
 		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
-			panic(err)
-		}
-
-		type Dados struct {
-			Nome      string
-			Sobrenome string
-			Email     string
-			Token     string
+			http.Error(w, "Usuário não encontrado", 404)
+			return
 		}
 
 		t, err := TokenAPI(usuario)
 		if err != nil {
-			panic(err)
-		}
-
-		dados := Dados{
-			Nome:      usuario.Nome,
-			Sobrenome: usuario.Sobrenome,
-			Email:     usuario.Email,
-			Token:     t,
+			http.Error(w, "Não foi possivel retornar un Token", 404)
+			return
 		}
 
 		if SenhaHashCheck(usuario.Senha, senhaJSON) == nil {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(dados)
+			json.NewEncoder(w).Encode(t)
 		} else {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode("Não autorizado")
+			http.Error(w, "Senha inválida", 401)
 		}
 	}
 }
