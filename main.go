@@ -791,16 +791,40 @@ func TokenAPI(u usuarios.Usuarios) (string, error) {
 	return tokenString, nil
 }
 
-// TokenCheck verifica se o Token é válido
-func TokenCheck(t string) bool {
-	afterVerificationToken, err := jwt.ParseWithClaims(t, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+// TokenAPIEmail recebe um JWT e retorna uma string com o e-mail do usuário
+func TokenAPIEmail(s string) string {
+
+	afterVerificationToken, err := jwt.ParseWithClaims(s, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
 		return []byte(assinatura), nil
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	return afterVerificationToken.Valid
+	tokenOK := afterVerificationToken.Valid && err == nil
+
+	claims := afterVerificationToken.Claims.(*minhasClaims)
+
+	var email string
+	email = claims.Email
+
+	if !tokenOK {
+		return "Token inválido"
+	}
+
+	return email
+}
+
+// TokenCheck verifica se o Token é válido
+func TokenCheck(t string) error {
+	afterVerificationToken, err := jwt.ParseWithClaims(t, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
+		return []byte(assinatura), nil
+	})
+	if err != nil || afterVerificationToken.Valid == false {
+		return err
+	}
+
+	return nil
 }
 
 // Payload armazena os dados retirados de um token válido
@@ -912,7 +936,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 		row := db.QueryRow(query, usuario.Email)
 		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
 		if err != nil {
-			http.Error(w, "Usuário não encontrado", 404)
+			RespostaComErro(w, 404, "Usuário não encontrado")
 			return
 		}
 
@@ -926,7 +950,9 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(t)
 		} else {
-			http.Error(w, "Senha inválida", 401)
+			//http.Error(w, "Senha inválida", 401)
+			RespostaComErro(w, 401, "Senha inválida")
+			return
 		}
 	}
 }
@@ -1009,18 +1035,17 @@ func APIPedirNovaSenha(db *sql.DB) http.HandlerFunc {
 // MudarSenhaStruct Recebe JSON com informações de usuário que quer mudar senha
 type MudarSenhaStruct struct {
 	Token string `json:"token"`
-	Email string `json:"email"`
 	Senha string `json:"senha"`
 }
 
-// APIMudarSenha ...
+// APIMudarSenha recebe um JWT e nova senha e
 func APIMudarSenha(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//var usuario usuarios.Usuarios
 		var mudarSenha MudarSenhaStruct
 
 		if r.Method != "POST" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			//http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			RespostaComErro(w, 405, "Método não autorizado")
 			return
 		}
 
@@ -1028,28 +1053,30 @@ func APIMudarSenha(db *sql.DB) http.HandlerFunc {
 		json.NewDecoder(r.Body).Decode(&mudarSenha)
 		senha, err := SenhaHash(mudarSenha.Senha)
 		if err != nil {
-			panic(err)
+			RespostaComErro(w, 401, "Aconteceu algum problema. Tente novamente.")
+			return
 		}
-		email := mudarSenha.Email
+
 		token := mudarSenha.Token
 
-		tokenOK := TokenCheck(token)
-		if tokenOK != true {
-			panic(err)
+		err = TokenCheck(token)
+		if err != nil {
+			RespostaComErro(w, 401, "Token inválido")
+			return
 		}
 
-		// query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
-		// row := db.QueryRow(query, usuario.Email)
-		// err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
-		// if err != nil {
-		// 	panic(err)
-		// }
+		email := TokenAPIEmail(token)
 
 		query := `UPDATE usuarios SET senha=$1 WHERE email=$2;`
 		_, err = db.Exec(query, senha, email)
 		if err != nil {
-			panic(err)
+			RespostaComErro(w, 404, "Usuário não encontrado")
+			return
 		}
+
+		mensagem := "Senha alterada com sucesso"
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mensagem)
 
 	}
 }
@@ -1164,4 +1191,10 @@ func EnviaEmail(nome, email, codigo string) {
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
 	}
+}
+
+func RespostaComErro(w http.ResponseWriter, status int, erro string) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(erro)
+	return
 }
