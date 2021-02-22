@@ -70,7 +70,7 @@ func main() {
 	//seed(conect)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   []string{"http://localhost:3000", "https://valentedev-react-auth.herokuapp.com"},
 		AllowCredentials: true,
 		// Enable Debugging for testing, consider disabling in production
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut, http.MethodOptions},
@@ -745,7 +745,7 @@ func Token(u usuarios.Usuarios) (string, error) {
 
 	claims := minhasClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
 			Issuer:    "go-postgres-heroku",
 		},
 		Email: u.Email,
@@ -774,7 +774,7 @@ func TokenAPI(u usuarios.Usuarios) (string, error) {
 
 	claims := minhasClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
 			Issuer:    "go-postgres-heroku",
 		},
 		Email: u.Email,
