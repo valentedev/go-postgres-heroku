@@ -6,20 +6,18 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"github.com/valentedev/go-postgres-heroku/usuarios"
+	"github.com/valentedev/go-postgres-heroku/src/resetsenha"
+	"github.com/valentedev/go-postgres-heroku/src/usuarios"
+	"github.com/valentedev/go-postgres-heroku/src/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -48,22 +46,22 @@ func main() {
 	mux.HandleFunc("/", Home())
 	mux.HandleFunc("/admin/login/", Login(conect))
 	mux.HandleFunc("/admin/login/redirect/", Logado(conect))
-	mux.HandleFunc("/admin/", TokenMiddleware(AdminHome(conect)))
-	mux.HandleFunc("/admin/usuario/", TokenMiddleware(Usuario(conect)))
-	mux.HandleFunc("/admin/usuario/criar/", TokenMiddleware(CriarUsuario()))
-	mux.HandleFunc("/admin/usuario/criado/", TokenMiddleware(Criado(conect)))
-	mux.HandleFunc("/admin/usuario/editar/", TokenMiddleware(EditarUsuario(conect)))
-	mux.HandleFunc("/admin/usuario/editado/", TokenMiddleware(Editado(conect)))
-	mux.HandleFunc("/admin/usuario/deletar/", TokenMiddleware(Deletar(conect)))
-	mux.HandleFunc("/admin/usuario/deletado/", TokenMiddleware(Deletado(conect)))
-	mux.HandleFunc("/admin/usuario/novasenha/", TokenMiddleware(NovaSenha(conect)))
-	mux.HandleFunc("/admin/usuario/novasenha/confirma/", TokenMiddleware(NovaSenhaConfirma(conect)))
+	mux.HandleFunc("/admin/", utils.TokenMiddleware(AdminHome(conect)))
+	mux.HandleFunc("/admin/usuario/", utils.TokenMiddleware(Usuario(conect)))
+	mux.HandleFunc("/admin/usuario/criar/", utils.TokenMiddleware(CriarUsuario()))
+	mux.HandleFunc("/admin/usuario/criado/", utils.TokenMiddleware(Criado(conect)))
+	mux.HandleFunc("/admin/usuario/editar/", utils.TokenMiddleware(EditarUsuario(conect)))
+	mux.HandleFunc("/admin/usuario/editado/", utils.TokenMiddleware(Editado(conect)))
+	mux.HandleFunc("/admin/usuario/deletar/", utils.TokenMiddleware(Deletar(conect)))
+	mux.HandleFunc("/admin/usuario/deletado/", utils.TokenMiddleware(Deletado(conect)))
+	mux.HandleFunc("/admin/usuario/novasenha/", utils.TokenMiddleware(NovaSenha(conect)))
+	mux.HandleFunc("/admin/usuario/novasenha/confirma/", utils.TokenMiddleware(NovaSenhaConfirma(conect)))
 	mux.HandleFunc("/api/", APIHome())
 	mux.HandleFunc("/api/login", APILogin(conect))
 	mux.HandleFunc("/api/cadastro", APICadastro(conect))
-	mux.HandleFunc("/api/pedirnovasenha", APIPedirNovaSenha(conect))
+	mux.HandleFunc("/api/reset", resetsenha.APIResetSenha(conect))
 	mux.HandleFunc("/api/mudarsenha", APIMudarSenha(conect))
-	mux.HandleFunc("/api/emailconfirma", APIEmailConfirma(conect))
+	mux.HandleFunc("/api/emailconfirma", resetsenha.APIEmailConfirma(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)
@@ -91,7 +89,7 @@ func main() {
 func Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -114,7 +112,7 @@ func AdminHome(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		rows, err := db.Query("SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios ORDER BY id DESC;")
 		if err != nil {
@@ -138,7 +136,7 @@ func AdminHome(db *sql.DB) http.HandlerFunc {
 			c = &http.Cookie{}
 		}
 
-		t := TokenPayload(c)
+		t := utils.TokenPayload(c)
 
 		type Dados struct {
 			Linhas  []usuarios.Usuarios
@@ -168,7 +166,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 	//retornamos um Handler será uma função anônima
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
@@ -200,7 +198,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			c = &http.Cookie{}
 		}
 
-		tokenEmail := TokenPayload(c)
+		tokenEmail := utils.TokenPayload(c)
 		if err != nil {
 			panic(err)
 		}
@@ -228,7 +226,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 //CriarUsuario gera um formulário para entrada de dados no DB
 func CriarUsuario() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logging(r)
+		utils.Logging(r)
 
 		var tpl *template.Template
 		tpl = template.Must(template.ParseGlob("./templates/*"))
@@ -243,7 +241,7 @@ func CriarUsuario() http.HandlerFunc {
 func Criado(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		//caso o método do request não seja POST, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
@@ -319,7 +317,7 @@ func Criado(db *sql.DB) http.HandlerFunc {
 func EditarUsuario(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		//"params" é o URL de request. Nesse caso, /usuario/{id}
 		params := r.URL.Path
@@ -362,7 +360,7 @@ func Editado(db *sql.DB) http.HandlerFunc {
 	//retornamos um Handler será uma função anônima
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		//caso o método do request não seja PUT, redireciona para o formulário de criação do usuario
 		if r.Method != http.MethodPost {
@@ -434,7 +432,7 @@ func Deletar(db *sql.DB) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		params := r.URL.Path
 		id := strings.TrimPrefix(params, "/admin/usuario/deletar/")
@@ -465,7 +463,7 @@ func Deletar(db *sql.DB) http.HandlerFunc {
 // Deletado confirma a remoção do usuário do banco de dados
 func Deletado(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		logging(r)
+		utils.Logging(r)
 
 		params := r.URL.Path
 		id := strings.TrimPrefix(params, "/admin/usuario/deletado/")
@@ -489,14 +487,14 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 func NovaSenha(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		c, err := r.Cookie("session")
 		if err != nil {
 			c = &http.Cookie{}
 		}
 
-		tokenEmail := TokenPayload(c).Email
+		tokenEmail := utils.TokenPayload(c).Email
 		if err != nil {
 			panic(err)
 		}
@@ -581,7 +579,7 @@ func NovaSenhaConfirma(db *sql.DB) http.HandlerFunc {
 func Login(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		c := http.Cookie{
 			Path:     "/",
@@ -607,7 +605,7 @@ func Login(db *sql.DB) http.HandlerFunc {
 func Logado(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		if r.Method != http.MethodPost {
 			http.Error(w, "Método não autorizado", 405)
@@ -633,7 +631,7 @@ func Logado(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Acesso não autorizado", 401)
 		}
 
-		token, err := Token(usuario)
+		token, err := utils.Token(usuario)
 		if err != nil {
 			panic(err)
 		}
@@ -655,13 +653,6 @@ func Logado(db *sql.DB) http.HandlerFunc {
 		http.Redirect(w, r, "/admin/", 307)
 
 	}
-}
-
-func logging(r *http.Request) {
-	metodo := r.Method
-	params := r.URL.Path
-	host := r.Host
-	fmt.Printf("Request: %s %s%s - %s\n", metodo, host, params, time.Now().Format(time.RFC3339))
 }
 
 //conectarDB vai fazer a interface entre o servidor e banco de dados usando as informações de acesso armazenadas no env do Heroku
@@ -730,163 +721,6 @@ func seed(db *sql.DB) {
 
 // TOKEN #####################
 
-type minhasClaims struct {
-	jwt.StandardClaims
-	Email string
-	Nome  string
-}
-
-var assinatura = os.Getenv("TOKEN_SECRET")
-
-// Token envia uma string para o client que será usada para autenticação.
-func Token(u usuarios.Usuarios) (string, error) {
-
-	var err error
-
-	claims := minhasClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
-			Issuer:    "go-postgres-heroku",
-		},
-		Email: u.Email,
-		Nome:  u.Nome,
-	}
-
-	// evita que alguem logado com não-admin use esse token
-	if u.Admin == false {
-		return "", fmt.Errorf("Não autorizado %w", err)
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-
-	tokenString, err := token.SignedString([]byte(assinatura))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return tokenString, nil
-}
-
-// TokenAPI envia uma string para o client que será usada para autenticação.
-func TokenAPI(u usuarios.Usuarios) (string, error) {
-
-	var err error
-
-	claims := minhasClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
-			Issuer:    "go-postgres-heroku",
-		},
-		Email: u.Email,
-		Nome:  u.Nome,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-
-	tokenString, err := token.SignedString([]byte(assinatura))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return tokenString, nil
-}
-
-// TokenAPIEmail recebe um JWT e retorna uma string com o e-mail do usuário
-func TokenAPIEmail(s string) string {
-
-	afterVerificationToken, err := jwt.ParseWithClaims(s, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		return []byte(assinatura), nil
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	tokenOK := afterVerificationToken.Valid && err == nil
-
-	claims := afterVerificationToken.Claims.(*minhasClaims)
-
-	var email string
-	email = claims.Email
-
-	if !tokenOK {
-		return "Token inválido"
-	}
-
-	return email
-}
-
-// TokenCheck verifica se o Token é válido
-func TokenCheck(t string) error {
-	afterVerificationToken, err := jwt.ParseWithClaims(t, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		return []byte(assinatura), nil
-	})
-	if err != nil || afterVerificationToken.Valid == false {
-		return err
-	}
-
-	return nil
-}
-
-// Payload armazena os dados retirados de um token válido
-type Payload struct {
-	Nome  string
-	Email string
-}
-
-// TokenPayload verifica a validade do token e retorna um struct com dados do token.payload
-func TokenPayload(c *http.Cookie) Payload {
-
-	tokenString := c.Value
-
-	afterVerificationToken, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(beforeVeritificationToken *jwt.Token) (interface{}, error) {
-		return []byte(assinatura), nil
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	tokenOK := afterVerificationToken.Valid && err == nil
-
-	claims := afterVerificationToken.Claims.(*minhasClaims)
-
-	var payload Payload
-
-	if tokenOK {
-		payload.Nome = claims.Nome
-		payload.Email = claims.Email
-		return payload
-	}
-
-	return payload
-
-}
-
-// TokenMiddleware é um wrapper que vai verificar se há um token válido em cada Handler.
-func TokenMiddleware(next http.Handler) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		c, err := r.Cookie("session")
-		if err != nil {
-			http.Redirect(w, r, "/admin/login/", http.StatusSeeOther)
-			return
-		}
-
-		tokenString := c.Value
-
-		tokenVerificado, err := jwt.ParseWithClaims(tokenString, &minhasClaims{}, func(t *jwt.Token) (interface{}, error) {
-			return []byte(assinatura), nil
-		})
-		if err != nil || !tokenVerificado.Valid {
-			fmt.Println("Token inválido ou inexistente")
-			http.Redirect(w, r, "/admin/login/", 307)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-
-}
-
 // SenhaHash usa bcrypt para encriptar a senha
 func SenhaHash(senha string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(senha), bcrypt.DefaultCost)
@@ -903,7 +737,7 @@ func SenhaHashCheck(SenhaHash, senha string) error {
 func APIHome() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		logging(r)
+		utils.Logging(r)
 
 		var tpl *template.Template
 
@@ -927,7 +761,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		logging(r)
+		utils.Logging(r)
 
 		json.NewDecoder(r.Body).Decode(&usuario)
 		senhaJSON := usuario.Senha
@@ -940,7 +774,7 @@ func APILogin(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		t, err := TokenAPI(usuario)
+		t, err := utils.TokenAPI(usuario)
 		if err != nil {
 			http.Error(w, "Não foi possivel retornar un Token", 404)
 			return
@@ -969,7 +803,7 @@ func APICadastro(db *sql.DB) http.HandlerFunc {
 
 		}
 
-		logging(r)
+		utils.Logging(r)
 
 		json.NewDecoder(r.Body).Decode(&usuario)
 
@@ -994,44 +828,6 @@ func APICadastro(db *sql.DB) http.HandlerFunc {
 
 }
 
-// APIPedirNovaSenha ...
-func APIPedirNovaSenha(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var usuario usuarios.Usuarios
-
-		if r.Method != "GET" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-			return
-
-		}
-
-		logging(r)
-
-		json.NewDecoder(r.Body).Decode(&usuario)
-
-		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
-		row := db.QueryRow(query, usuario.Email)
-		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
-		if err != nil {
-			panic(err)
-		}
-
-		codigo := CodigoVerificação(16)
-
-		id := usuario.ID
-		nome := usuario.Nome
-		email := usuario.Email
-
-		query = `INSERT INTO vercod (usuario, codigo) VALUES ($1,$2)`
-		_, err = db.Exec(query, id, codigo)
-		if err != nil {
-			panic(err)
-		}
-
-		EnviaEmail(nome, email, codigo)
-	}
-}
-
 // MudarSenhaStruct Recebe JSON com informações de usuário que quer mudar senha
 type MudarSenhaStruct struct {
 	Token string `json:"token"`
@@ -1049,7 +845,7 @@ func APIMudarSenha(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		logging(r)
+		utils.Logging(r)
 		json.NewDecoder(r.Body).Decode(&mudarSenha)
 		senha, err := SenhaHash(mudarSenha.Senha)
 		if err != nil {
@@ -1059,13 +855,13 @@ func APIMudarSenha(db *sql.DB) http.HandlerFunc {
 
 		token := mudarSenha.Token
 
-		err = TokenCheck(token)
+		err = utils.TokenCheck(token)
 		if err != nil {
 			RespostaComErro(w, 401, "Token inválido")
 			return
 		}
 
-		email := TokenAPIEmail(token)
+		email := utils.TokenAPIEmail(token)
 
 		query := `UPDATE usuarios SET senha=$1 WHERE email=$2;`
 		_, err = db.Exec(query, senha, email)
@@ -1081,118 +877,7 @@ func APIMudarSenha(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-// Vercod é uma struct para verificação de codigo
-type Vercod struct {
-	ID      int
-	Criacao string
-	Usuario int
-	Codigo  string
-}
-
-// APIEmailConfirma recebe um link com o codigo de verificação
-func APIEmailConfirma(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var usuario usuarios.Usuarios
-		var vercod Vercod
-
-		if r.Method != "GET" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-			return
-
-		}
-
-		logging(r)
-
-		// id será o código de verificação informado no URL
-		params := r.URL.Path
-		id := strings.TrimPrefix(params, "/api/emailconfirma/")
-
-		// faz uma consulta no BD se o id (código de verificação) existe
-		query := `SELECT id, criado_em, usuario, codigo FROM vercod WHERE codigo=$1;`
-		row := db.QueryRow(query, id)
-		// coloca o resultado da consulta no struct Vercod
-		err := row.Scan(&vercod.ID, &vercod.Criacao, &vercod.Usuario, &vercod.Codigo)
-		if err != nil {
-			panic(err)
-		}
-
-		// aloca a data de criação encontrada na variável criacaoVercod
-		criacaoVercod := vercod.Criacao
-		// formata criacaoVercod para time.Time, formato RFC3339
-		inicio, err := time.Parse(time.RFC3339, criacaoVercod)
-		if err != nil {
-			panic(err)
-		}
-
-		fim := time.Now()
-		// estabelece a diferença de tempo entre a criação do código de verificação e o momento da consulta
-		delta := fim.Sub(inicio)
-
-		// se delta for maior que 10 min retorna JSON com mensagem
-		if delta > (time.Minute * 10) {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode("Seu código de verificação está vencido")
-			return
-		}
-
-		// consulta o BD para trazer o usuário informado no vercod
-		query = `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
-		row = db.QueryRow(query, vercod.Usuario)
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
-		if err != nil {
-			panic(err)
-		}
-
-		// emite um token com esse o usuário
-		// TODO: criar TokenAPI que será usado apenas pelo usuário, não Admin
-		token, err := Token(usuario)
-		if err != nil {
-			panic(err)
-		}
-
-		// responde com um JSON + token com usuário. Esse usuário será comparado com o usuário logado no Frontend.
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(token)
-
-	}
-
-}
-
-// CodigoVerificação é um código aleatório de 8 digitos que é enviado ao usuário para verificação autenticidade
-func CodigoVerificação(n int) string {
-	const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	sb := strings.Builder{}
-	sb.Grow(n)
-	for i := 0; i < n; i++ {
-		x := rand.Int63() % int64(len(alfaBeta))
-		sb.WriteByte(alfaBeta[x])
-	}
-	return sb.String()
-}
-
-// EnviaEmail para verificação e troca de senha
-func EnviaEmail(nome, email, codigo string) {
-
-	from := mail.NewEmail("Rodrigo Valente", "valentergs@gmail.com")
-	subject := "Troca de senha - Admin.app"
-	to := mail.NewEmail(nome, email)
-	plainTextContent := "and easy to do anywhere, even with Go"
-	htmlContent := `
-	Clique no link abaixo para solicitar troca de sua senha.
-	http://localhost:8080/api/emailconfirma/` + codigo
-
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
-	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	response, err := client.Send(message)
-	if err != nil {
-		log.Println(err)
-	} else {
-		fmt.Println(response.StatusCode)
-		fmt.Println(response.Body)
-		fmt.Println(response.Headers)
-	}
-}
-
+// RespostaComErro ...
 func RespostaComErro(w http.ResponseWriter, status int, erro string) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(erro)
