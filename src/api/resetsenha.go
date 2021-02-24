@@ -20,6 +20,57 @@ type Vercod struct {
 	Codigo  string
 }
 
+// ResetSenha ...
+func ResetSenha(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var usuario usuarios.Usuarios
+
+		if r.Method != "POST" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+
+		}
+
+		utils.Logging(r)
+
+		json.NewDecoder(r.Body).Decode(&usuario)
+
+		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
+		row := db.QueryRow(query, usuario.Email)
+		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		if err != nil {
+			utils.RespostaComErro(w, 404, "Usuário não encontrado")
+			return
+		}
+
+		codigo := CodigoVerificação(16)
+
+		id := usuario.ID
+		nome := usuario.Nome
+		email := usuario.Email
+
+		query = `INSERT INTO vercod (usuario, codigo) VALUES ($1,$2)`
+		_, err = db.Exec(query, id, codigo)
+		if err != nil {
+			panic(err)
+		}
+
+		utils.EnviaEmail(nome, email, codigo)
+	}
+}
+
+// CodigoVerificação é um código aleatório de 8 digitos que é enviado ao usuário para verificação autenticidade
+func CodigoVerificação(n int) string {
+	const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	sb := strings.Builder{}
+	sb.Grow(n)
+	for i := 0; i < n; i++ {
+		x := rand.Int63() % int64(len(alfaBeta))
+		sb.WriteByte(alfaBeta[x])
+	}
+	return sb.String()
+}
+
 // EmailConfirma recebe um link com o codigo de verificação
 func EmailConfirma(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -87,55 +138,4 @@ func EmailConfirma(db *sql.DB) http.HandlerFunc {
 
 	}
 
-}
-
-// ResetSenha ...
-func ResetSenha(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var usuario usuarios.Usuarios
-
-		if r.Method != "POST" {
-			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
-			return
-
-		}
-
-		utils.Logging(r)
-
-		json.NewDecoder(r.Body).Decode(&usuario)
-
-		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE email=$1;`
-		row := db.QueryRow(query, usuario.Email)
-		err := row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
-		if err != nil {
-			utils.RespostaComErro(w, 404, "Usuário não encontrado")
-			return
-		}
-
-		codigo := CodigoVerificação(16)
-
-		id := usuario.ID
-		nome := usuario.Nome
-		email := usuario.Email
-
-		query = `INSERT INTO vercod (usuario, codigo) VALUES ($1,$2)`
-		_, err = db.Exec(query, id, codigo)
-		if err != nil {
-			panic(err)
-		}
-
-		utils.EnviaEmail(nome, email, codigo)
-	}
-}
-
-// CodigoVerificação é um código aleatório de 8 digitos que é enviado ao usuário para verificação autenticidade
-func CodigoVerificação(n int) string {
-	const alfaBeta = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	sb := strings.Builder{}
-	sb.Grow(n)
-	for i := 0; i < n; i++ {
-		x := rand.Int63() % int64(len(alfaBeta))
-		sb.WriteByte(alfaBeta[x])
-	}
-	return sb.String()
 }
