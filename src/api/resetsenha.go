@@ -1,18 +1,13 @@
-package resetsenha
+package api
 
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/valentedev/go-postgres-heroku/src/usuarios"
 	"github.com/valentedev/go-postgres-heroku/src/utils"
 )
@@ -25,8 +20,8 @@ type Vercod struct {
 	Codigo  string
 }
 
-// APIEmailConfirma recebe um link com o codigo de verificação
-func APIEmailConfirma(db *sql.DB) http.HandlerFunc {
+// EmailConfirma recebe um link com o codigo de verificação
+func EmailConfirma(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var usuario usuarios.Usuarios
 		var vercod Vercod
@@ -94,8 +89,8 @@ func APIEmailConfirma(db *sql.DB) http.HandlerFunc {
 
 }
 
-// APIResetSenha ...
-func APIResetSenha(db *sql.DB) http.HandlerFunc {
+// ResetSenha ...
+func ResetSenha(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var usuario usuarios.Usuarios
 
@@ -129,7 +124,7 @@ func APIResetSenha(db *sql.DB) http.HandlerFunc {
 			panic(err)
 		}
 
-		EnviaEmail(nome, email, codigo)
+		utils.EnviaEmail(nome, email, codigo)
 	}
 }
 
@@ -143,27 +138,4 @@ func CodigoVerificação(n int) string {
 		sb.WriteByte(alfaBeta[x])
 	}
 	return sb.String()
-}
-
-// EnviaEmail para verificação e troca de senha
-func EnviaEmail(nome, email, codigo string) {
-
-	from := mail.NewEmail("Rodrigo Valente", "valentergs@gmail.com")
-	subject := "Troca de senha - Admin.app"
-	to := mail.NewEmail(nome, email)
-	plainTextContent := "and easy to do anywhere, even with Go"
-	htmlContent := `
-	Clique no link abaixo para solicitar troca de sua senha.
-	http://localhost:8080/api/emailconfirma/` + codigo
-
-	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
-	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	response, err := client.Send(message)
-	if err != nil {
-		log.Println(err)
-	} else {
-		fmt.Println(response.StatusCode)
-		fmt.Println(response.Body)
-		fmt.Println(response.Headers)
-	}
 }
