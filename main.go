@@ -53,7 +53,8 @@ func main() {
 	mux.HandleFunc("/api/", api.Home())
 	mux.HandleFunc("/api/login", api.Login(conect))
 	mux.HandleFunc("/api/cadastro", api.Cadastro(conect))
-	mux.HandleFunc("/api/reset", api.ResetSenha(conect))
+	mux.HandleFunc("/api/reset", api.ResetSenhaUm(conect))
+	mux.HandleFunc("/api/reset/confirma", api.ResetSenhaDois(conect))
 	mux.HandleFunc("/api/mudarsenha", api.MudarSenha(conect))
 	mux.HandleFunc("/api/emailconfirma", api.EmailConfirma(conect))
 

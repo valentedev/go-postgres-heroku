@@ -20,8 +20,8 @@ type Vercod struct {
 	Codigo  string
 }
 
-// ResetSenha ...
-func ResetSenha(db *sql.DB) http.HandlerFunc {
+// ResetSenhaUm ...
+func ResetSenhaUm(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var usuario usuarios.Usuarios
 
@@ -69,6 +69,43 @@ func CodigoVerificação(n int) string {
 		sb.WriteByte(alfaBeta[x])
 	}
 	return sb.String()
+}
+
+// ResetConfirma ...
+type ResetConfirma struct {
+	Senha  string `json:"senha"`
+	Codigo string `json:"vercod"`
+}
+
+// ResetSenhaDois ...
+func ResetSenhaDois(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var resetInfo ResetConfirma
+
+		if r.Method != "POST" {
+			http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+			return
+
+		}
+		utils.Logging(r)
+		json.NewDecoder(r.Body).Decode(&resetInfo)
+		senha, err := utils.SenhaHash(resetInfo.Senha)
+		if err != nil {
+			panic(err)
+		}
+		query := `UPDATE usuarios SET senha=$1 WHERE email=
+		(SELECT usuarios.email FROM usuarios
+		JOIN vercod ON usuarios.id = vercod.usuario
+		WHERE vercod.codigo = $2);`
+		_, err = db.Exec(query, senha, resetInfo.Codigo)
+		if err != nil {
+			utils.RespostaComErro(w, 404, "Usuário não encontrado")
+			return
+		}
+
+		utils.RespostaComErro(w, 202, "Senha atualizada com sucesso!")
+
+	}
 }
 
 // EmailConfirma recebe um link com o codigo de verificação
