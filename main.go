@@ -56,7 +56,7 @@ func main() {
 	mux.HandleFunc("/api/reset", api.ResetSenhaUm(conect))
 	mux.HandleFunc("/api/reset/confirma", api.ResetSenhaDois(conect))
 	mux.HandleFunc("/api/mudarsenha", api.MudarSenha(conect))
-	mux.HandleFunc("/api/emailconfirma", api.EmailConfirma(conect))
+	//mux.HandleFunc("/api/emailconfirma", api.EmailConfirma(conect))
 
 	// // aqui chamamos a func seed() para migrar os dados do []UsuariosDB para Banco de Dados novo.
 	// // depois que os dados foram migrados, podem deixar de chamar a função seed(db *sql.DB)

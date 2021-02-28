@@ -55,7 +55,7 @@ func TokenAPI(u usuarios.Usuarios) (string, error) {
 
 	claims := minhasClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 1).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 30).Unix(),
 			Issuer:    "go-postgres-heroku",
 		},
 		Email: u.Email,
