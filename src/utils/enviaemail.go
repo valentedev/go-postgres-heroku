@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log"
+	"net/smtp"
 	"os"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -30,5 +31,26 @@ func EnviaEmail(nome, email, codigo string) {
 		fmt.Println(response.StatusCode)
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
+	}
+}
+
+// EnviaEmailSMTP Envia um email usando o pacote net/smtp
+func EnviaEmailSMTP() {
+	// Configuration
+	from := "valentergs@gmail.com"
+	password := os.Getenv("gmailpw")
+	to := []string{"rodrigovalente@hotmail.com"}
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	message := []byte("Troca de senha do SMTP")
+
+	// Create authentication
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+
+	// Send actual message
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	if err != nil {
+		log.Fatal(err)
 	}
 }

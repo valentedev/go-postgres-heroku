@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -106,20 +107,13 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			fmt.Println("invalid param format")
 		}
 
-		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
-
-		//row terá o resultado da sql query
-		row := db.QueryRow(query, idint)
-
-		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
-		var usuario usuarios.Usuarios
-
-		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		u := usuarios.Usuarios{}
+		usuario, err := u.Select(db, "usuarios", idint)
 		if err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
+
+		json.NewDecoder(strings.NewReader(usuario)).Decode(&u)
 
 		c, err := r.Cookie("session")
 		if err != nil {
@@ -132,12 +126,13 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		}
 
 		type Dados struct {
-			Usuario    usuarios.Usuarios
+			Usuario usuarios.Usuarios
+			//Usuario    map[string]interface{}
 			TokenEmail string
 		}
 
 		dados := Dados{
-			Usuario:    usuario,
+			Usuario:    u,
 			TokenEmail: tokenEmail.Email,
 		}
 
@@ -415,55 +410,57 @@ func Deletado(db *sql.DB) http.HandlerFunc {
 func NovaSenha(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		utils.Logging(r)
+		// utils.Logging(r)
 
-		c, err := r.Cookie("session")
-		if err != nil {
-			c = &http.Cookie{}
-		}
+		// c, err := r.Cookie("session")
+		// if err != nil {
+		// 	c = &http.Cookie{}
+		// }
 
-		tokenEmail := utils.TokenPayload(c).Email
-		if err != nil {
-			panic(err)
-		}
+		// tokenEmail := utils.TokenPayload(c).Email
+		// if err != nil {
+		// 	panic(err)
+		// }
 
-		//"params" é o URL de request. Nesse caso, /usuario/{id}
-		params := r.URL.Path
-		//"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
-		id := strings.TrimPrefix(params, "/admin/usuario/novasenha/")
-		//convertemos o tipo id de string para int e chamamos de "idint"
-		idint, err := strconv.Atoi(id)
-		if err != nil {
-			fmt.Println("invalid param format")
-		}
+		// //"params" é o URL de request. Nesse caso, /usuario/{id}
+		// params := r.URL.Path
+		// //"id" é o params sem /usuario/. Ficamos apenas com o numero que nos interessa: {id}
+		// id := strings.TrimPrefix(params, "/admin/usuario/novasenha/")
+		// //convertemos o tipo id de string para int e chamamos de "idint"
+		// idint, err := strconv.Atoi(id)
+		// if err != nil {
+		// 	fmt.Println("invalid param format")
+		// }
 
-		//query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
-		query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
+		// //criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
+		// var usuario usuarios.Usuarios
 
-		//row terá o resultado da sql query
-		row := db.QueryRow(query, idint)
+		// //query armazena os dados do usuario que tenha ID igual ao numero informado o http request (idint)
+		// query := `SELECT id, nome, sobrenome, email, senha, admin, ativo FROM usuarios WHERE id=$1;`
 
-		//criamos uma variável do tipo usuarios.Usuarios para receber as informações do banco de dados
-		var usuario usuarios.Usuarios
+		// //row terá o resultado da sql query
+		// row := db.QueryRow(query, idint)
 
-		//copiamos o as informações de "row" para "usuario"
-		err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
-		if err != nil {
-			fmt.Println(err)
-		}
+		// //copiamos o as informações de "row" para "usuario"
+		// err = row.Scan(&usuario.ID, &usuario.Nome, &usuario.Sobrenome, &usuario.Email, &usuario.Senha, &usuario.Admin, &usuario.Ativo)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+
+		//m, _ := usuario.Select(db, "usuarios", idint)
 
 		// Caso o email do usuario seja diferente do email do token, o processo é interrompido. Assim se evita que um admin altere a senha outro usuário.
-		if tokenEmail != usuario.Email {
-			http.Error(w, "Unauthorized", 401)
-			return
-		}
+		// if tokenEmail != m["email"] {
+		// 	http.Error(w, "Unauthorized", 401)
+		// 	return
+		// }
 
-		var tpl *template.Template
-		tpl = template.Must(template.ParseGlob("./templates/*"))
-		err = tpl.ExecuteTemplate(w, "NovaSenha", usuario)
-		if err != nil {
-			panic(err)
-		}
+		// var tpl *template.Template
+		// tpl = template.Must(template.ParseGlob("./templates/*"))
+		// err = tpl.ExecuteTemplate(w, "NovaSenha", usuario)
+		// if err != nil {
+		// 	panic(err)
+		// }
 	}
 
 }

@@ -58,6 +58,7 @@ func ResetSenhaUm(db *sql.DB) http.HandlerFunc {
 		}
 
 		utils.EnviaEmail(nome, email, codigo)
+		//utils.EnviaEmailSMTP()
 
 		utils.RespostaComErro(w, 202, "Código enviado para o e-mail informado")
 	}
