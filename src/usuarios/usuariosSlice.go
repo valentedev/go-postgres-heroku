@@ -1,9 +1,6 @@
 package usuarios
 
 import (
-	"database/sql"
-	"encoding/json"
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -29,38 +26,6 @@ func (u Usuarios) StructFieldsToString() string {
 	}
 	fields = fields[2:]
 	return fields
-}
-
-// Select ...
-func (u Usuarios) Select(db *sql.DB, t string, id int) (string, error) {
-	fields := u.StructFieldsToString()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE id=%d", fields, t, id)
-	rows, _ := db.Query(query)
-	cols, _ := rows.Columns()
-	columns := make([]interface{}, len(cols))
-	m := make(map[string]interface{})
-	columnPointers := make([]interface{}, len(cols))
-
-	for rows.Next() {
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-		if err := rows.Scan(columnPointers...); err != nil {
-			mj, _ := json.Marshal(m)
-			return string(mj), err
-		}
-		for j, colName := range cols {
-			val := columnPointers[j].(*interface{})
-			m[colName] = *val
-		}
-	}
-
-	mjson, err := json.Marshal(m)
-	if err != nil {
-		panic(err)
-	}
-
-	return string(mjson), nil
 }
 
 //UsuariosSlice vai reunir um ou mais Usuários que serão renderizados no Template index.html

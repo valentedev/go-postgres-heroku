@@ -10,6 +10,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/valentedev/go-postgres-heroku/src/database"
 	"github.com/valentedev/go-postgres-heroku/src/usuarios"
 	"github.com/valentedev/go-postgres-heroku/src/utils"
 )
@@ -107,12 +108,15 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 			fmt.Println("invalid param format")
 		}
 
+		// Selecionar usuário no banco de dados com base ao numero de ID informado
 		u := usuarios.Usuarios{}
-		usuario, err := u.Select(db, "usuarios", idint)
+		fields := u.StructFieldsToString()
+		usuario, err := database.SelectByID(db, fields, "usuarios", idint)
 		if err != nil {
 			panic(err)
 		}
 
+		// Mapear string e struct de Usuarios
 		json.NewDecoder(strings.NewReader(usuario)).Decode(&u)
 
 		c, err := r.Cookie("session")
@@ -126,8 +130,7 @@ func Usuario(db *sql.DB) http.HandlerFunc {
 		}
 
 		type Dados struct {
-			Usuario usuarios.Usuarios
-			//Usuario    map[string]interface{}
+			Usuario    usuarios.Usuarios
 			TokenEmail string
 		}
 
