@@ -1,5 +1,5 @@
 body {
-  /* background-color: khaki; */
+  background-color: khaki;
 }
 
 form input.form-control {
@@ -9,4 +9,8 @@ form input.form-control {
 a.nav-logo {
   text-decoration: none;
   color: inherit;
+}
+
+pre code {
+  background-color: red;
 }

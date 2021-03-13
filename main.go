@@ -11,7 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/valentedev/go-postgres-heroku/src/api"
-	"github.com/valentedev/go-postgres-heroku/src/controllers.go"
+	"github.com/valentedev/go-postgres-heroku/src/controllers"
 	"github.com/valentedev/go-postgres-heroku/src/utils"
 )
 
